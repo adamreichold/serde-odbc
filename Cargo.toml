@@ -1,0 +1,8 @@
+[package]
+name = "serde-odbc"
+version = "0.1.0"
+authors = ["Adam Reichold <adam.reichold@t-online.de>"]
+
+[dependencies]
+odbc-sys = "0.5"
+serde = "1.0"
