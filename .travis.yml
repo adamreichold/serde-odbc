@@ -1,0 +1,8 @@
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - libsqliteodbc
+
+language: rust
