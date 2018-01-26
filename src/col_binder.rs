@@ -5,21 +5,23 @@ use odbc_sys::{
     SQLUSMALLINT, SQLLEN, SQLPOINTER,
     SQLRETURN, SQL_SUCCESS, SQL_SUCCESS_WITH_INFO,
     SQLHSTMT,
-    SQLBindCol, SQL_C_SLONG,
+    SQLBindCol,
 };
 
 use serde::ser::{
     Serialize,
-    Serializer, Impossible, SerializeTuple,
+    Serializer, Impossible, SerializeTuple, SerializeStruct,
 };
 
-use super::bind::{ sql_ptr, BindTypes, BindError, BindResult };
+use super::bind::{ sql_ptr, ind_ptr, BindTypes, BindError, BindResult };
 
 
 struct ColBinder {
     stmt: SQLHSTMT,
     col_nr: SQLUSMALLINT,
     value_ptr: SQLPOINTER,
+    indicator_ptr: *mut SQLLEN,
+    is_nullable: bool,
 }
 
 pub fn bind_cols< Cols: Serialize >( stmt: SQLHSTMT, cols: &Cols ) -> Result< (), SQLRETURN > {
@@ -27,6 +29,8 @@ pub fn bind_cols< Cols: Serialize >( stmt: SQLHSTMT, cols: &Cols ) -> Result< ()
         stmt,
         col_nr: 0,
         value_ptr: null_mut(),
+        indicator_ptr: null_mut(),
+        is_nullable: false,
     };
 
     cols.serialize( &mut binder ).map_err( | err | err.rc() )
@@ -34,7 +38,9 @@ pub fn bind_cols< Cols: Serialize >( stmt: SQLHSTMT, cols: &Cols ) -> Result< ()
 
 impl ColBinder {
 
-    fn bind< T: BindTypes >( &self ) -> BindResult {
+    fn bind< T: BindTypes >( &mut self ) -> BindResult {
+        self.col_nr += 1;
+
         let rc = unsafe {
             SQLBindCol(
                 self.stmt,
@@ -42,7 +48,7 @@ impl ColBinder {
                 T::c_data_type(),
                 self.value_ptr,
                 size_of::< T >() as SQLLEN,
-                null_mut(),
+                self.indicator_ptr
             )
         };
 
@@ -62,7 +68,7 @@ impl<'a> Serializer for &'a mut ColBinder {
     type SerializeTupleStruct = Impossible< Self::Ok, Self::Error >;
     type SerializeTupleVariant = Impossible< Self::Ok, Self::Error >;
     type SerializeMap = Impossible< Self::Ok, Self::Error >;
-    type SerializeStruct = Impossible< Self::Ok, Self::Error >;
+    type SerializeStruct = Self;
     type SerializeStructVariant = Impossible< Self::Ok, Self::Error >;
 
     fn serialize_bool( self, value: bool ) -> BindResult {
@@ -162,7 +168,9 @@ impl<'a> Serializer for &'a mut ColBinder {
     }
 
     fn serialize_struct( self, name: &'static str, len: usize ) -> Result< Self::SerializeStruct, BindError > {
-        Err( BindError{} ) // TODO
+        self.is_nullable = name == "Nullable" && len == 2;
+
+        Ok( self )
     }
 
     fn serialize_struct_variant( self, name: &'static str, variant_index: u32, variant: &'static str, len: usize ) -> Result< Self::SerializeStructVariant, BindError > {
@@ -183,12 +191,47 @@ impl< 'a > SerializeTuple for &'a mut ColBinder {
     type Error = BindError;
 
     fn serialize_element< T: ?Sized + Serialize >( &mut self, value: &T ) -> BindResult {
-        self.col_nr += 1;
         self.value_ptr = sql_ptr( value );
         value.serialize( &mut **self )
     }
 
     fn end( self ) -> BindResult {
+        Ok( () )
+    }
+}
+
+impl< 'a > SerializeStruct for &'a mut ColBinder {
+    type Ok = ();
+    type Error = BindError;
+
+    fn serialize_field< T: ?Sized + Serialize >( &mut self, name: &'static str, value: &T ) -> BindResult {
+        if self.is_nullable {
+            match name {
+
+                "indicator" => {
+                    self.indicator_ptr = ind_ptr( value );
+                    Ok( () )
+                },
+
+                "value" => {
+                    self.value_ptr = sql_ptr( value );
+                    value.serialize( &mut **self )
+                },
+
+                name => panic!( "Unexpected field {} inside nullable struct.", name ),
+            }
+        } else {
+            self.value_ptr = sql_ptr( value );
+            value.serialize( &mut **self )
+        }
+    }
+
+    fn end( self ) -> BindResult {
+        if self.is_nullable {
+            self.indicator_ptr = null_mut();
+            self.is_nullable = false;
+        }
+
         Ok( () )
     }
 }

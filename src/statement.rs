@@ -106,6 +106,7 @@ mod tests {
 
     use super::*;
     use super::super::connection::Environment;
+    use super::super::nullable::Nullable;
     use super::super::tests::CONN_STR;
 
     #[ test ]
@@ -113,11 +114,11 @@ mod tests {
         let env = Environment::new().unwrap();
         let conn = Connection::new( &env, CONN_STR ).unwrap();
 
-        let mut stmt: Statement< ( i32, () ), ( i32, () ) > = Statement::new( &conn, "SELECT ?" ).unwrap();
+        let mut stmt: Statement< ( i32, () ), ( Nullable< i32 >, () ) > = Statement::new( &conn, "SELECT ?" ).unwrap();
         stmt.params().0 = 42;
         stmt.exec().unwrap();
         assert!( stmt.fetch().unwrap() );
-        assert_eq!( 42, stmt.cols().0 );
+        assert_eq!( Some( 42 ), stmt.cols().0.into() );
         assert!( !stmt.fetch().unwrap() );
     }
 }

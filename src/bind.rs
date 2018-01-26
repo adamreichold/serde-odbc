@@ -2,7 +2,7 @@ use std::fmt;
 use std::error;
 
 use odbc_sys::{
-    SQLPOINTER,
+    SQLPOINTER, SQLLEN,
     SQLRETURN, SQL_ERROR,
     SqlCDataType, SqlDataType,
 };
@@ -11,7 +11,11 @@ use serde::ser;
 
 
 pub fn sql_ptr< T: ?Sized >( value: &T ) -> SQLPOINTER {
-    ((value as *const T) as *mut T) as SQLPOINTER
+    ( ( value as *const T ) as *mut T ) as SQLPOINTER
+}
+
+pub fn ind_ptr< T: ?Sized >( value: &T ) -> *mut SQLLEN {
+    ( ( value as *const T ) as *mut T ) as *mut SQLLEN
 }
 
 pub trait BindTypes {
