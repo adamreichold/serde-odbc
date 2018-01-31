@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLRETURN, SQLUSMALLINT, SQL_SUCCESS,
+use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_SUCCESS,
                SQL_SUCCESS_WITH_INFO};
 
 use serde::Serialize;
@@ -14,10 +14,8 @@ struct ColBinder {
     col_nr: SQLUSMALLINT,
 }
 
-pub unsafe fn bind_cols<Cols: Serialize>(stmt: SQLHSTMT, cols: &Cols) -> Result<(), SQLRETURN> {
-    let mut binder = Binder::new(ColBinder { stmt, col_nr: 0 });
-
-    cols.serialize(&mut binder).map_err(|err| err.rc())
+pub unsafe fn bind_cols<C: Serialize>(stmt: SQLHSTMT, cols: &C) -> BindResult {
+    Binder::bind(ColBinder { stmt, col_nr: 0 }, cols)
 }
 
 impl BinderImpl for ColBinder {

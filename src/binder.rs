@@ -23,13 +23,15 @@ pub struct Binder<I: BinderImpl> {
 }
 
 impl<I: BinderImpl> Binder<I> {
-    pub fn new(impl_: I) -> Self {
-        Binder {
+    pub fn bind<T: Serialize>(impl_: I, value: &T) -> BindResult {
+        let mut binder = Binder {
             impl_,
-            value_ptr: null_mut(),
+            value_ptr: ((value as *const T) as *mut T) as SQLPOINTER,
             indicator_ptr: null_mut(),
             is_nullable: false,
-        }
+        };
+
+        value.serialize(&mut binder)
     }
 }
 
@@ -224,12 +226,10 @@ impl<'a, I: BinderImpl> SerializeStruct for &'a mut Binder<I> {
                     self.indicator_ptr = ((value as *const T) as *mut T) as *mut SQLLEN;
                     Ok(())
                 }
-
                 "value" => {
                     self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
                     value.serialize(&mut **self)
                 }
-
                 name => panic!("Unexpected field {} inside nullable struct.", name),
             }
         } else {

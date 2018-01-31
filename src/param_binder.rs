@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
-use odbc_sys::{SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLRETURN, SQLUSMALLINT,
-               SQL_PARAM_INPUT, SQL_SUCCESS, SQL_SUCCESS_WITH_INFO};
+use odbc_sys::{SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_PARAM_INPUT,
+               SQL_SUCCESS, SQL_SUCCESS_WITH_INFO};
 
 use serde::ser::Serialize;
 
@@ -14,13 +14,8 @@ struct ParamBinder {
     param_nr: SQLUSMALLINT,
 }
 
-pub unsafe fn bind_params<Params: Serialize>(
-    stmt: SQLHSTMT,
-    params: &Params,
-) -> Result<(), SQLRETURN> {
-    let mut binder = Binder::new(ParamBinder { stmt, param_nr: 0 });
-
-    params.serialize(&mut binder).map_err(|err| err.rc())
+pub unsafe fn bind_params<P: Serialize>(stmt: SQLHSTMT, params: &P) -> BindResult {
+    Binder::bind(ParamBinder { stmt, param_nr: 0 }, params)
 }
 
 impl BinderImpl for ParamBinder {
