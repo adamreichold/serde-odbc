@@ -112,11 +112,10 @@ impl<'conn, 'env, P: ParamBinding, C: ColBinding + FetchSize> FetchSize
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::connection::Environment;
-    use super::super::nullable::Nullable;
-    use super::super::param_binding::{NoParams, ParamSet, Params};
-    use super::super::col_binding::{Cols, NoCols, RowSet};
     use super::super::tests::CONN_STR;
+    use super::super::connection::Environment;
+    use super::super::param_binding::Params;
+    use super::super::col_binding::Cols;
 
     #[test]
     fn exec_stmt() {
@@ -130,116 +129,5 @@ mod tests {
         assert!(stmt.fetch().unwrap());
         assert_eq!(42, *stmt.cols());
         assert!(!stmt.fetch().unwrap());
-    }
-
-    #[test]
-    fn bind_nullable_param() {
-        let env = Environment::new().unwrap();
-        let conn = Connection::new(&env, CONN_STR).unwrap();
-
-        let mut stmt: Statement<Params<Nullable<i32>>, Cols<i32>> =
-            Statement::new(&conn, "SELECT ?").unwrap();
-        *stmt.params() = Some(42).into();
-        stmt.exec().unwrap();
-        assert!(stmt.fetch().unwrap());
-        assert_eq!(42, *stmt.cols());
-        assert!(!stmt.fetch().unwrap());
-    }
-
-    #[test]
-    fn bind_nullable_col() {
-        let env = Environment::new().unwrap();
-        let conn = Connection::new(&env, CONN_STR).unwrap();
-
-        let mut stmt: Statement<Params<i32>, Cols<Nullable<i32>>> =
-            Statement::new(&conn, "SELECT ?").unwrap();
-        *stmt.params() = 42;
-        stmt.exec().unwrap();
-        assert!(stmt.fetch().unwrap());
-        assert_eq!(Some(42), (*stmt.cols()).into());
-        assert!(!stmt.fetch().unwrap());
-    }
-
-    #[test]
-    fn bind_param_set() {
-        let env = Environment::new().unwrap();
-        let conn = Connection::new(&env, CONN_STR).unwrap();
-
-        {
-            let mut stmt: Statement<NoParams, NoCols> =
-                Statement::new(&conn, "CREATE TEMPORARY TABLE tbl (col INTEGER NOT NULL)").unwrap();
-            stmt.exec().unwrap();
-        }
-
-        {
-            let mut stmt: Statement<ParamSet<i32>, NoCols> =
-                Statement::new(&conn, "INSERT INTO tbl (col) VALUES (?)").unwrap();
-            for i in 0..128 {
-                stmt.params().push(i);
-            }
-            stmt.exec().unwrap();
-        }
-
-        {
-            let mut stmt: Statement<NoParams, Cols<i32>> =
-                Statement::new(&conn, "SELECT col FROM tbl ORDER BY col").unwrap();
-            stmt.exec().unwrap();
-            for i in 0..128 {
-                assert!(stmt.fetch().unwrap());
-                assert_eq!(i, *stmt.cols());
-            }
-            assert!(!stmt.fetch().unwrap());
-        }
-    }
-
-    #[test]
-    fn bind_row_set() {
-        let env = Environment::new().unwrap();
-        let conn = Connection::new(&env, CONN_STR).unwrap();
-
-        {
-            let mut stmt: Statement<NoParams, NoCols> =
-                Statement::new(&conn, "CREATE TEMPORARY TABLE tbl (col INTEGER NOT NULL)").unwrap();
-            stmt.exec().unwrap();
-        }
-
-        {
-            let mut stmt: Statement<Params<i32>, NoCols> =
-                Statement::new(&conn, "INSERT INTO tbl (col) VALUES (?)").unwrap();
-            for i in 0..128 {
-                *stmt.params() = i;
-                stmt.exec().unwrap();
-            }
-        }
-
-        {
-            let mut stmt: Statement<NoParams, RowSet<i32>> =
-                Statement::new(&conn, "SELECT col FROM tbl ORDER BY col").unwrap();
-            stmt.set_fetch_size(32);
-            assert!(32 == stmt.fetch_size());
-            stmt.exec().unwrap();
-            for i in 0..4 {
-                assert!(stmt.fetch().unwrap());
-                assert_eq!(32, stmt.cols().len());
-                stmt.cols().iter().enumerate().for_each(|(j, cols)| {
-                    assert_eq!(32 * i + j, *cols as usize);
-                });
-            }
-            assert!(!stmt.fetch().unwrap());
-        }
-
-        {
-            let mut stmt: Statement<NoParams, RowSet<i32>> =
-                Statement::new(&conn, "SELECT col FROM tbl ORDER BY col").unwrap();
-            stmt.set_fetch_size(256);
-            assert!(256 == stmt.fetch_size());
-            stmt.exec().unwrap();
-            assert!(stmt.fetch().unwrap());
-            assert_eq!(128, stmt.cols().len());
-            stmt.cols().iter().enumerate().for_each(|(i, cols)| {
-                assert_eq!(i, *cols as usize);
-            });
-            assert!(!stmt.fetch().unwrap());
-        }
     }
 }

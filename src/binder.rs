@@ -13,13 +13,20 @@ pub trait BinderImpl {
         value_ptr: SQLPOINTER,
         indicator_ptr: *mut SQLLEN,
     ) -> BindResult;
+
+    fn bind_str(
+        &mut self,
+        length: usize,
+        value_ptr: SQLPOINTER,
+        indicator_ptr: *mut SQLLEN,
+    ) -> BindResult;
 }
 
 pub struct Binder<I: BinderImpl> {
     impl_: I,
     value_ptr: SQLPOINTER,
     indicator_ptr: *mut SQLLEN,
-    is_nullable: bool,
+    set_indicator: bool,
 }
 
 impl<I: BinderImpl> Binder<I> {
@@ -28,7 +35,7 @@ impl<I: BinderImpl> Binder<I> {
             impl_,
             value_ptr: ((value as *const T) as *mut T) as SQLPOINTER,
             indicator_ptr: null_mut(),
-            is_nullable: false,
+            set_indicator: false,
         };
 
         value.serialize(&mut binder)
@@ -100,7 +107,11 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
     }
 
     fn serialize_bytes(self, value: &[u8]) -> BindResult {
-        Ok(()) // TODO
+        self.impl_.bind_str(
+            value.len(),
+            (value.as_ptr() as *mut u8) as SQLPOINTER,
+            self.indicator_ptr,
+        )
     }
 
     fn serialize_none(self) -> BindResult {
@@ -173,7 +184,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, BindError> {
-        self.is_nullable = name == "Nullable" && len == 2;
+        self.set_indicator = (name == "Nullable" || name == "String") && len == 2;
 
         Ok(self)
     }
@@ -220,28 +231,19 @@ impl<'a, I: BinderImpl> SerializeStruct for &'a mut Binder<I> {
         name: &'static str,
         value: &T,
     ) -> BindResult {
-        if self.is_nullable {
-            match name {
-                "indicator" => {
-                    self.indicator_ptr = ((value as *const T) as *mut T) as *mut SQLLEN;
-                    Ok(())
-                }
-                "value" => {
-                    self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
-                    value.serialize(&mut **self)
-                }
-                name => panic!("Unexpected field {} inside nullable struct.", name),
-            }
-        } else {
-            self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
-            value.serialize(&mut **self)
+        if self.set_indicator && name == "indicator" {
+            self.indicator_ptr = ((value as *const T) as *mut T) as *mut SQLLEN;
+            return Ok(());
         }
+
+        self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
+        value.serialize(&mut **self)
     }
 
     fn end(self) -> BindResult {
-        if self.is_nullable {
+        if self.set_indicator {
             self.indicator_ptr = null_mut();
-            self.is_nullable = false;
+            self.set_indicator = false;
         }
 
         Ok(())

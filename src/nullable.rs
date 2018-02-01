@@ -38,3 +38,41 @@ impl<T> Into<Option<T>> for Nullable<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::super::tests::CONN_STR;
+    use super::super::connection::{Connection, Environment};
+    use super::super::statement::Statement;
+    use super::super::param_binding::Params;
+    use super::super::col_binding::Cols;
+
+    #[test]
+    fn bind_nullable_param() {
+        let env = Environment::new().unwrap();
+        let conn = Connection::new(&env, CONN_STR).unwrap();
+
+        let mut stmt: Statement<Params<Nullable<i32>>, Cols<i32>> =
+            Statement::new(&conn, "SELECT ?").unwrap();
+        *stmt.params() = Some(42).into();
+        stmt.exec().unwrap();
+        assert!(stmt.fetch().unwrap());
+        assert_eq!(42, *stmt.cols());
+        assert!(!stmt.fetch().unwrap());
+    }
+
+    #[test]
+    fn bind_nullable_col() {
+        let env = Environment::new().unwrap();
+        let conn = Connection::new(&env, CONN_STR).unwrap();
+
+        let mut stmt: Statement<Params<i32>, Cols<Nullable<i32>>> =
+            Statement::new(&conn, "SELECT ?").unwrap();
+        *stmt.params() = 42;
+        stmt.exec().unwrap();
+        assert!(stmt.fetch().unwrap());
+        assert_eq!(Some(42), (*stmt.cols()).into());
+        assert!(!stmt.fetch().unwrap());
+    }
+}

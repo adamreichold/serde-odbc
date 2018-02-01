@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
-use odbc_sys::{SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_PARAM_INPUT,
-               SQL_SUCCESS, SQL_SUCCESS_WITH_INFO};
+use odbc_sys::{SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLULEN, SQLUSMALLINT, SQL_C_CHAR,
+               SQL_PARAM_INPUT, SQL_SUCCESS, SQL_SUCCESS_WITH_INFO, SQL_VARCHAR};
 
 use serde::ser::Serialize;
 
@@ -37,6 +37,35 @@ impl BinderImpl for ParamBinder {
                 0,
                 value_ptr,
                 size_of::<T>() as SQLLEN,
+                indicator_ptr,
+            )
+        };
+
+        match rc {
+            SQL_SUCCESS | SQL_SUCCESS_WITH_INFO => Ok(()),
+            rc => Err(BindError {}), // TODO
+        }
+    }
+
+    fn bind_str(
+        &mut self,
+        length: usize,
+        value_ptr: SQLPOINTER,
+        indicator_ptr: *mut SQLLEN,
+    ) -> BindResult {
+        self.param_nr += 1;
+
+        let rc = unsafe {
+            SQLBindParameter(
+                self.stmt,
+                self.param_nr,
+                SQL_PARAM_INPUT,
+                SQL_C_CHAR,
+                SQL_VARCHAR,
+                length as SQLULEN,
+                0,
+                value_ptr,
+                1,
                 indicator_ptr,
             )
         };

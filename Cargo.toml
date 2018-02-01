@@ -7,3 +7,5 @@ authors = ["Adam Reichold <adam.reichold@t-online.de>"]
 odbc-sys = "0.5"
 serde = "1.0"
 serde_derive = "1.0"
+typenum = "1.9"
+generic-array = "0.9"

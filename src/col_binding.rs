@@ -153,3 +153,63 @@ impl<C: Clone + Default + Serialize> FetchSize for RowSet<C> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::super::tests::CONN_STR;
+    use super::super::connection::{Connection, Environment};
+    use super::super::statement::Statement;
+    use super::super::param_binding::{NoParams, Params};
+
+    #[test]
+    fn bind_row_set() {
+        let env = Environment::new().unwrap();
+        let conn = Connection::new(&env, CONN_STR).unwrap();
+
+        {
+            let mut stmt: Statement<NoParams, NoCols> =
+                Statement::new(&conn, "CREATE TEMPORARY TABLE tbl (col INTEGER NOT NULL)").unwrap();
+            stmt.exec().unwrap();
+        }
+
+        {
+            let mut stmt: Statement<Params<i32>, NoCols> =
+                Statement::new(&conn, "INSERT INTO tbl (col) VALUES (?)").unwrap();
+            for i in 0..128 {
+                *stmt.params() = i;
+                stmt.exec().unwrap();
+            }
+        }
+
+        {
+            let mut stmt: Statement<NoParams, RowSet<i32>> =
+                Statement::new(&conn, "SELECT col FROM tbl ORDER BY col").unwrap();
+            stmt.set_fetch_size(32);
+            assert!(32 == stmt.fetch_size());
+            stmt.exec().unwrap();
+            for i in 0..4 {
+                assert!(stmt.fetch().unwrap());
+                assert_eq!(32, stmt.cols().len());
+                stmt.cols().iter().enumerate().for_each(|(j, cols)| {
+                    assert_eq!(32 * i + j, *cols as usize);
+                });
+            }
+            assert!(!stmt.fetch().unwrap());
+        }
+
+        {
+            let mut stmt: Statement<NoParams, RowSet<i32>> =
+                Statement::new(&conn, "SELECT col FROM tbl ORDER BY col").unwrap();
+            stmt.set_fetch_size(256);
+            assert!(256 == stmt.fetch_size());
+            stmt.exec().unwrap();
+            assert!(stmt.fetch().unwrap());
+            assert_eq!(128, stmt.cols().len());
+            stmt.cols().iter().enumerate().for_each(|(i, cols)| {
+                assert_eq!(i, *cols as usize);
+            });
+            assert!(!stmt.fetch().unwrap());
+        }
+    }
+}

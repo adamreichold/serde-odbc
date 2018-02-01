@@ -109,3 +109,44 @@ impl<P: Serialize> ParamBinding for ParamSet<P> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use super::super::tests::CONN_STR;
+    use super::super::connection::{Connection, Environment};
+    use super::super::statement::Statement;
+    use super::super::col_binding::{Cols, NoCols, RowSet};
+
+    #[test]
+    fn bind_param_set() {
+        let env = Environment::new().unwrap();
+        let conn = Connection::new(&env, CONN_STR).unwrap();
+
+        {
+            let mut stmt: Statement<NoParams, NoCols> =
+                Statement::new(&conn, "CREATE TEMPORARY TABLE tbl (col INTEGER NOT NULL)").unwrap();
+            stmt.exec().unwrap();
+        }
+
+        {
+            let mut stmt: Statement<ParamSet<i32>, NoCols> =
+                Statement::new(&conn, "INSERT INTO tbl (col) VALUES (?)").unwrap();
+            for i in 0..128 {
+                stmt.params().push(i);
+            }
+            stmt.exec().unwrap();
+        }
+
+        {
+            let mut stmt: Statement<NoParams, Cols<i32>> =
+                Statement::new(&conn, "SELECT col FROM tbl ORDER BY col").unwrap();
+            stmt.exec().unwrap();
+            for i in 0..128 {
+                assert!(stmt.fetch().unwrap());
+                assert_eq!(i, *stmt.cols());
+            }
+            assert!(!stmt.fetch().unwrap());
+        }
+    }
+}

@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_SUCCESS,
+use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_C_CHAR, SQL_SUCCESS,
                SQL_SUCCESS_WITH_INFO};
 
 use serde::Serialize;
@@ -33,6 +33,31 @@ impl BinderImpl for ColBinder {
                 T::c_data_type(),
                 value_ptr,
                 size_of::<T>() as SQLLEN,
+                indicator_ptr,
+            )
+        };
+
+        match rc {
+            SQL_SUCCESS | SQL_SUCCESS_WITH_INFO => Ok(()),
+            rc => Err(BindError {}), // TODO
+        }
+    }
+
+    fn bind_str(
+        &mut self,
+        length: usize,
+        value_ptr: SQLPOINTER,
+        indicator_ptr: *mut SQLLEN,
+    ) -> BindResult {
+        self.col_nr += 1;
+
+        let rc = unsafe {
+            SQLBindCol(
+                self.stmt,
+                self.col_nr,
+                SQL_C_CHAR,
+                value_ptr,
+                (length + 1) as SQLLEN,
                 indicator_ptr,
             )
         };
