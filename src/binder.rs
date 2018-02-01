@@ -42,69 +42,40 @@ impl<I: BinderImpl> Binder<I> {
     }
 }
 
+macro_rules! fn_serialize {
+    ($method:ident, $type:ident) => {
+        fn $method(self, _value: $type) -> BindResult {
+            self.impl_.bind::<$type>(self.value_ptr, self.indicator_ptr)
+        }
+    }
+}
+
 impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
     type Ok = ();
     type Error = BindError;
 
-    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
     type SerializeTuple = Self;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
     type SerializeTupleVariant = Impossible<Self::Ok, Self::Error>;
-    type SerializeMap = Impossible<Self::Ok, Self::Error>;
     type SerializeStruct = Self;
     type SerializeStructVariant = Impossible<Self::Ok, Self::Error>;
+    type SerializeMap = Impossible<Self::Ok, Self::Error>;
+    type SerializeSeq = Impossible<Self::Ok, Self::Error>;
 
-    fn serialize_bool(self, value: bool) -> BindResult {
-        Ok(()) // TODO
-    }
+    fn_serialize!(serialize_i8, i8);
+    fn_serialize!(serialize_i16, i16);
+    fn_serialize!(serialize_i32, i32);
+    fn_serialize!(serialize_i64, i64);
 
-    fn serialize_char(self, value: char) -> BindResult {
-        Ok(()) // TODO
-    }
+    fn_serialize!(serialize_u8, u8);
+    fn_serialize!(serialize_u16, u16);
+    fn_serialize!(serialize_u32, u32);
+    fn_serialize!(serialize_u64, u64);
 
-    fn serialize_i8(self, value: i8) -> BindResult {
-        Ok(()) // TODO
-    }
+    fn_serialize!(serialize_f32, f32);
+    fn_serialize!(serialize_f64, f64);
 
-    fn serialize_i16(self, value: i16) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_i32(self, _value: i32) -> BindResult {
-        self.impl_.bind::<i32>(self.value_ptr, self.indicator_ptr)
-    }
-
-    fn serialize_i64(self, value: i64) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_u8(self, value: u8) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_u16(self, value: u16) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_u32(self, value: u32) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_u64(self, value: u64) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_f32(self, value: f32) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_f64(self, value: f64) -> BindResult {
-        Ok(()) // TODO
-    }
-
-    fn serialize_str(self, value: &str) -> BindResult {
-        Ok(()) // TODO
-    }
+    fn_serialize!(serialize_bool, bool);
 
     fn serialize_bytes(self, value: &[u8]) -> BindResult {
         self.impl_.bind_str(
@@ -114,69 +85,77 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         )
     }
 
-    fn serialize_none(self) -> BindResult {
-        Ok(()) // TODO
+    fn serialize_char(self, _value: char) -> BindResult {
+        unimplemented!();
     }
 
-    fn serialize_some<T: ?Sized + Serialize>(self, value: &T) -> BindResult {
-        Ok(()) // TODO
+    fn serialize_str(self, _value: &str) -> BindResult {
+        unimplemented!();
+    }
+
+    fn serialize_none(self) -> BindResult {
+        unimplemented!();
+    }
+
+    fn serialize_some<T: ?Sized + Serialize>(self, _value: &T) -> BindResult {
+        unimplemented!();
     }
 
     fn serialize_unit(self) -> BindResult {
-        Ok(()) // TODO
+        Ok(())
     }
 
-    fn serialize_unit_struct(self, name: &'static str) -> BindResult {
-        Ok(()) // TODO
+    fn serialize_unit_struct(self, _name: &'static str) -> BindResult {
+        Ok(())
     }
 
     fn serialize_unit_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
     ) -> BindResult {
-        Ok(()) // TODO
+        Ok(())
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(
         self,
-        name: &'static str,
-        value: &T,
+        _name: &'static str,
+        _value: &T,
     ) -> BindResult {
-        Ok(()) // TODO
+        unimplemented!();
     }
 
     fn serialize_newtype_variant<T: ?Sized + Serialize>(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        value: &T,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _value: &T,
     ) -> BindResult {
-        Ok(()) // TODO
+        unimplemented!();
     }
 
-    fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, BindError> {
+    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, BindError> {
         Ok(self)
     }
 
     fn serialize_tuple_struct(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeTupleStruct, BindError> {
-        Err(BindError {}) // TODO
+        unimplemented!();
     }
 
     fn serialize_tuple_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        len: usize,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeTupleVariant, BindError> {
-        Err(BindError {}) // TODO
+        unimplemented!();
     }
 
     fn serialize_struct(
@@ -191,20 +170,20 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
 
     fn serialize_struct_variant(
         self,
-        name: &'static str,
-        variant_index: u32,
-        variant: &'static str,
-        len: usize,
+        _name: &'static str,
+        _variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
     ) -> Result<Self::SerializeStructVariant, BindError> {
-        Err(BindError {}) // TODO
+        unimplemented!();
     }
 
-    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, BindError> {
-        Err(BindError {}) // TODO
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, BindError> {
+        unimplemented!();
     }
 
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, BindError> {
-        Err(BindError {}) // TODO
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, BindError> {
+        unimplemented!();
     }
 }
 

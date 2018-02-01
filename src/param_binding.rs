@@ -116,7 +116,7 @@ mod tests {
     use super::super::tests::CONN_STR;
     use super::super::connection::{Connection, Environment};
     use super::super::statement::Statement;
-    use super::super::col_binding::{Cols, NoCols, RowSet};
+    use super::super::col_binding::{Cols, NoCols};
 
     #[test]
     fn bind_param_set() {
