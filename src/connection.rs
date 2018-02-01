@@ -1,5 +1,4 @@
 use std::ptr::null_mut;
-use std::marker::PhantomData;
 
 use odbc_sys::{SQLAllocHandle, SQLDriverConnect, SQLEndTran, SQLFreeHandle, SQLSetConnectAttr,
                SQLSetEnvAttr, SQL_OV_ODBC3, SqlCompletionType, SQLHANDLE, SQLHDBC, SQLHENV,
@@ -36,10 +35,10 @@ impl Drop for Environment {
     }
 }
 
-pub struct Connection<'env>(SQLHDBC, PhantomData<&'env Environment>);
+pub struct Connection(SQLHDBC);
 
-impl<'env> Connection<'env> {
-    pub fn new(env: &'env Environment, conn_str: &str) -> Result<Self> {
+impl Connection {
+    pub fn new(env: &Environment, conn_str: &str) -> Result<Self> {
         let mut dbc: SQLHANDLE = null_mut();
 
         unsafe { SQLAllocHandle(SQL_HANDLE_DBC, env.handle(), &mut dbc) }.check()?;
@@ -61,27 +60,27 @@ impl<'env> Connection<'env> {
 
         unsafe { SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, null_mut(), 0) }.check()?;
 
-        Ok(Connection(dbc, PhantomData))
+        Ok(Connection(dbc))
     }
 
     pub unsafe fn handle(&self) -> SQLHANDLE {
         self.0 as SQLHANDLE
     }
 
-    pub fn begin<'conn>(&'conn self) -> Transaction<'conn, 'env> {
+    pub fn begin<'conn>(&'conn self) -> Transaction<'conn> {
         Transaction(Some(self))
     }
 }
 
-impl<'env> Drop for Connection<'env> {
+impl Drop for Connection {
     fn drop(&mut self) {
         let _ = unsafe { SQLFreeHandle(SQL_HANDLE_DBC, self.handle()) };
     }
 }
 
-pub struct Transaction<'conn, 'env: 'conn>(Option<&'conn Connection<'env>>);
+pub struct Transaction<'conn>(Option<&'conn Connection>);
 
-impl<'conn, 'env> Transaction<'conn, 'env> {
+impl<'conn> Transaction<'conn> {
     pub fn commit(mut self) -> Result<()> {
         Self::end(self.0.take().unwrap(), SQL_COMMIT)
     }
@@ -90,12 +89,12 @@ impl<'conn, 'env> Transaction<'conn, 'env> {
         Self::end(self.0.take().unwrap(), SQL_ROLLBACK)
     }
 
-    fn end(conn: &'conn Connection<'env>, completion_type: SqlCompletionType) -> Result<()> {
+    fn end(conn: &'conn Connection, completion_type: SqlCompletionType) -> Result<()> {
         unsafe { SQLEndTran(SQL_HANDLE_DBC, conn.handle(), completion_type) }.check()
     }
 }
 
-impl<'conn, 'env> Drop for Transaction<'conn, 'env> {
+impl<'conn> Drop for Transaction<'conn> {
     fn drop(&mut self) {
         if let Some(conn) = self.0.take() {
             let _ = Self::end(conn, SQL_ROLLBACK);

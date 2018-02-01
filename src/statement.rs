@@ -1,5 +1,4 @@
 use std::ptr::null_mut;
-use std::marker::PhantomData;
 
 use odbc_sys::{SQLAllocHandle, SQLExecute, SQLFetch, SQLFreeHandle, SQLFreeStmt, SQLPrepare,
                SQLHANDLE, SQLHSTMT, SQLINTEGER, SQL_CLOSE, SQL_HANDLE_STMT, SQL_NO_DATA};
@@ -9,16 +8,15 @@ use super::connection::Connection;
 use super::param_binding::ParamBinding;
 use super::col_binding::{ColBinding, FetchSize};
 
-pub struct Statement<'conn, 'env: 'conn, P: ParamBinding, C: ColBinding> {
-    conn: PhantomData<&'conn Connection<'env>>,
+pub struct Statement<P: ParamBinding, C: ColBinding> {
     stmt: SQLHSTMT,
     is_positioned: bool,
     params: P,
     cols: C,
 }
 
-impl<'conn, 'env, P: ParamBinding, C: ColBinding> Statement<'conn, 'env, P, C> {
-    pub fn new(conn: &'conn Connection<'env>, stmt_str: &str) -> Result<Self> {
+impl<P: ParamBinding, C: ColBinding> Statement<P, C> {
+    pub fn new(conn: &Connection, stmt_str: &str) -> Result<Self> {
         let mut stmt: SQLHANDLE = null_mut();
 
         unsafe { SQLAllocHandle(SQL_HANDLE_STMT, conn.handle(), &mut stmt) }.check()?;
@@ -28,7 +26,6 @@ impl<'conn, 'env, P: ParamBinding, C: ColBinding> Statement<'conn, 'env, P, C> {
         unsafe { SQLPrepare(stmt, stmt_str.as_ptr(), stmt_str.len() as SQLINTEGER) }.check()?;
 
         Ok(Statement {
-            conn: PhantomData,
             stmt,
             is_positioned: false,
             params: P::new(),
@@ -74,15 +71,13 @@ impl<'conn, 'env, P: ParamBinding, C: ColBinding> Statement<'conn, 'env, P, C> {
     }
 }
 
-impl<'conn, 'env, P: ParamBinding, C: ColBinding> Drop for Statement<'conn, 'env, P, C> {
+impl<P: ParamBinding, C: ColBinding> Drop for Statement<P, C> {
     fn drop(&mut self) {
         let _ = unsafe { SQLFreeHandle(SQL_HANDLE_STMT, self.handle()) };
     }
 }
 
-impl<'conn, 'env, P: ParamBinding, C: ColBinding + FetchSize> FetchSize
-    for Statement<'conn, 'env, P, C>
-{
+impl<P: ParamBinding, C: ColBinding + FetchSize> FetchSize for Statement<P, C> {
     fn fetch_size(&self) -> usize {
         self.cols.fetch_size()
     }
