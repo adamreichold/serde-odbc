@@ -9,6 +9,7 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 use generic_array::{ArrayLength, GenericArray};
 
+#[derive(Clone)]
 struct ByteArray<N: ArrayLength<u8>>(GenericArray<u8, N>);
 
 impl<N: ArrayLength<u8>> Serialize for ByteArray<N> {
@@ -18,6 +19,7 @@ impl<N: ArrayLength<u8>> Serialize for ByteArray<N> {
 }
 
 #[repr(C)]
+#[derive(Clone)]
 pub struct String<N: ArrayLength<u8>> {
     indicator: SQLLEN,
     value: ByteArray<N>,
@@ -45,6 +47,20 @@ impl<N: ArrayLength<u8>> String<N> {
             );
         }
     }
+
+    pub fn as_slice<'a>(&'a self) -> Option<&'a [u8]> {
+        match self.indicator {
+            SQL_NULL_DATA => None,
+            indicator => Some(&self.value.0.as_slice()[..indicator as usize]),
+        }
+    }
+
+    pub fn as_mut_slice<'a>(&'a mut self) -> Option<&'a mut [u8]> {
+        match self.indicator {
+            SQL_NULL_DATA => None,
+            indicator => Some(&mut self.value.0.as_mut_slice()[..indicator as usize]),
+        }
+    }
 }
 
 impl<N: ArrayLength<u8>> Default for String<N> {
@@ -67,19 +83,13 @@ impl<'a, N: ArrayLength<u8>> From<&'a [u8]> for String<N> {
 
 impl<'a, N: ArrayLength<u8>> Into<Option<&'a [u8]>> for &'a String<N> {
     fn into(self) -> Option<&'a [u8]> {
-        match self.indicator {
-            SQL_NULL_DATA => None,
-            indicator => Some(&self.value.0.as_slice()[..indicator as usize]),
-        }
+        self.as_slice()
     }
 }
 
 impl<'a, N: ArrayLength<u8>> Into<Option<&'a mut [u8]>> for &'a mut String<N> {
     fn into(self) -> Option<&'a mut [u8]> {
-        match self.indicator {
-            SQL_NULL_DATA => None,
-            indicator => Some(&mut self.value.0.as_mut_slice()[..indicator as usize]),
-        }
+        self.as_mut_slice()
     }
 }
 
@@ -96,15 +106,13 @@ mod tests {
     #[test]
     fn default_str() {
         let value: String<U8> = Default::default();
-        let value: Option<&[u8]> = (&value).into();
-        assert_eq!(None, value);
+        assert_eq!(None, value.as_slice());
     }
 
     #[test]
     fn make_str() {
         let value: String<U8> = "foobar".as_bytes().into();
-        let value: Option<&[u8]> = (&value).into();
-        assert_eq!(Some("foobar".as_bytes()), value);
+        assert_eq!(Some("foobar".as_bytes()), value.as_slice());
     }
 
     #[test]
@@ -117,7 +125,7 @@ mod tests {
         stmt.params().assign("foobarfoobar".as_bytes());
         stmt.exec().unwrap();
         assert!(stmt.fetch().unwrap());
-        assert_eq!(Some("foobarfo".as_bytes()), stmt.cols().into());
+        assert_eq!(Some("foobarfo".as_bytes()), stmt.cols().as_slice());
         assert!(!stmt.fetch().unwrap());
     }
 }
