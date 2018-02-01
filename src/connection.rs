@@ -3,32 +3,24 @@ use std::marker::PhantomData;
 
 use odbc_sys::{SQLAllocHandle, SQLDriverConnect, SQLEndTran, SQLFreeHandle, SQLSetConnectAttr,
                SQLSetEnvAttr, SQL_OV_ODBC3, SqlCompletionType, SQLHANDLE, SQLHDBC, SQLHENV,
-               SQLRETURN, SQLSMALLINT, SQL_ATTR_AUTOCOMMIT, SQL_ATTR_CONNECTION_POOLING,
+               SQLSMALLINT, SQL_ATTR_AUTOCOMMIT, SQL_ATTR_CONNECTION_POOLING,
                SQL_ATTR_ODBC_VERSION, SQL_COMMIT, SQL_DRIVER_COMPLETE_REQUIRED, SQL_HANDLE_DBC,
-               SQL_HANDLE_ENV, SQL_ROLLBACK, SQL_SUCCESS};
+               SQL_HANDLE_ENV, SQL_ROLLBACK};
+
+use error::{OdbcResult, Result};
 
 pub struct Environment(SQLHENV);
 
 impl Environment {
-    pub fn new() -> Result<Environment, SQLRETURN> {
+    pub fn new() -> Result<Self> {
         let mut env: SQLHANDLE = null_mut();
 
-        let rc = unsafe { SQLAllocHandle(SQL_HANDLE_ENV, null_mut(), &mut env) };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
+        unsafe { SQLAllocHandle(SQL_HANDLE_ENV, null_mut(), &mut env) }.check()?;
 
         let env = env as SQLHENV;
 
-        let rc = unsafe { SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, SQL_OV_ODBC3.into(), 0) };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
-
-        let rc = unsafe { SQLSetEnvAttr(env, SQL_ATTR_CONNECTION_POOLING, null_mut(), 0) };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
+        unsafe { SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, SQL_OV_ODBC3.into(), 0) }.check()?;
+        unsafe { SQLSetEnvAttr(env, SQL_ATTR_CONNECTION_POOLING, null_mut(), 0) }.check()?;
 
         Ok(Environment(env))
     }
@@ -47,17 +39,14 @@ impl Drop for Environment {
 pub struct Connection<'env>(SQLHDBC, PhantomData<&'env Environment>);
 
 impl<'env> Connection<'env> {
-    pub fn new(env: &'env Environment, conn_str: &str) -> Result<Connection<'env>, SQLRETURN> {
+    pub fn new(env: &'env Environment, conn_str: &str) -> Result<Self> {
         let mut dbc: SQLHANDLE = null_mut();
 
-        let rc = unsafe { SQLAllocHandle(SQL_HANDLE_DBC, env.handle(), &mut dbc) };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
+        unsafe { SQLAllocHandle(SQL_HANDLE_DBC, env.handle(), &mut dbc) }.check()?;
 
         let dbc = dbc as SQLHDBC;
 
-        let rc = unsafe {
+        unsafe {
             SQLDriverConnect(
                 dbc,
                 null_mut(),
@@ -68,15 +57,9 @@ impl<'env> Connection<'env> {
                 null_mut(),
                 SQL_DRIVER_COMPLETE_REQUIRED,
             )
-        };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
+        }.check()?;
 
-        let rc = unsafe { SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, null_mut(), 0) };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
+        unsafe { SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, null_mut(), 0) }.check()?;
 
         Ok(Connection(dbc, PhantomData))
     }
@@ -99,23 +82,16 @@ impl<'env> Drop for Connection<'env> {
 pub struct Transaction<'conn, 'env: 'conn>(Option<&'conn Connection<'env>>);
 
 impl<'conn, 'env> Transaction<'conn, 'env> {
-    pub fn commit(mut self) -> Result<(), SQLRETURN> {
+    pub fn commit(mut self) -> Result<()> {
         Self::end(self.0.take().unwrap(), SQL_COMMIT)
     }
 
-    pub fn rollback(mut self) -> Result<(), SQLRETURN> {
+    pub fn rollback(mut self) -> Result<()> {
         Self::end(self.0.take().unwrap(), SQL_ROLLBACK)
     }
 
-    fn end(
-        conn: &'conn Connection<'env>,
-        completion_type: SqlCompletionType,
-    ) -> Result<(), SQLRETURN> {
-        let rc = unsafe { SQLEndTran(SQL_HANDLE_DBC, conn.handle(), completion_type) };
-        match rc {
-            SQL_SUCCESS => Ok(()),
-            rc => Err(rc),
-        }
+    fn end(conn: &'conn Connection<'env>, completion_type: SqlCompletionType) -> Result<()> {
+        unsafe { SQLEndTran(SQL_HANDLE_DBC, conn.handle(), completion_type) }.check()
     }
 }
 

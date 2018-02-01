@@ -2,9 +2,9 @@ use std::ptr::null_mut;
 use std::marker::PhantomData;
 
 use odbc_sys::{SQLAllocHandle, SQLExecute, SQLFetch, SQLFreeHandle, SQLFreeStmt, SQLPrepare,
-               SQLHANDLE, SQLHSTMT, SQLINTEGER, SQLRETURN, SQL_CLOSE, SQL_HANDLE_STMT,
-               SQL_NO_DATA, SQL_SUCCESS, SQL_SUCCESS_WITH_INFO};
+               SQLHANDLE, SQLHSTMT, SQLINTEGER, SQL_CLOSE, SQL_HANDLE_STMT, SQL_NO_DATA};
 
+use super::error::{OdbcResult, Result};
 use super::connection::Connection;
 use super::param_binding::ParamBinding;
 use super::col_binding::{ColBinding, FetchSize};
@@ -18,20 +18,14 @@ pub struct Statement<'conn, 'env: 'conn, P: ParamBinding, C: ColBinding> {
 }
 
 impl<'conn, 'env, P: ParamBinding, C: ColBinding> Statement<'conn, 'env, P, C> {
-    pub fn new(conn: &'conn Connection<'env>, stmt_str: &str) -> Result<Self, SQLRETURN> {
+    pub fn new(conn: &'conn Connection<'env>, stmt_str: &str) -> Result<Self> {
         let mut stmt: SQLHANDLE = null_mut();
 
-        let rc = unsafe { SQLAllocHandle(SQL_HANDLE_STMT, conn.handle(), &mut stmt) };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
+        unsafe { SQLAllocHandle(SQL_HANDLE_STMT, conn.handle(), &mut stmt) }.check()?;
 
         let stmt = stmt as SQLHSTMT;
 
-        let rc = unsafe { SQLPrepare(stmt, stmt_str.as_ptr(), stmt_str.len() as SQLINTEGER) };
-        if rc != SQL_SUCCESS {
-            return Err(rc);
-        }
+        unsafe { SQLPrepare(stmt, stmt_str.as_ptr(), stmt_str.len() as SQLINTEGER) }.check()?;
 
         Ok(Statement {
             conn: PhantomData,
@@ -54,40 +48,29 @@ impl<'conn, 'env, P: ParamBinding, C: ColBinding> Statement<'conn, 'env, P, C> {
         self.cols.cols()
     }
 
-    pub fn exec(&mut self) -> Result<(), SQLRETURN> {
+    pub fn exec(&mut self) -> Result<()> {
         if self.is_positioned {
-            let rc = unsafe { SQLFreeStmt(self.stmt, SQL_CLOSE) };
-            if rc != SQL_SUCCESS {
-                return Err(rc);
-            }
+            unsafe { SQLFreeStmt(self.stmt, SQL_CLOSE) }.check()?;
 
             self.is_positioned = false;
         }
 
         unsafe {
-            self.params.bind(self.stmt).map_err(|err| err.rc())?;
-            self.cols.bind(self.stmt).map_err(|err| err.rc())?;
+            self.params.bind(self.stmt)?;
+            self.cols.bind(self.stmt)?;
         }
 
-        let rc = unsafe { SQLExecute(self.stmt) };
-        if rc != SQL_SUCCESS && rc != SQL_NO_DATA {
-            return Err(rc);
-        }
-
-        Ok(())
+        unsafe { SQLExecute(self.stmt) }.check()
     }
 
-    pub fn fetch(&mut self) -> Result<bool, SQLRETURN> {
+    pub fn fetch(&mut self) -> Result<bool> {
         let rc = unsafe { SQLFetch(self.stmt) };
-        match rc {
-            SQL_SUCCESS | SQL_SUCCESS_WITH_INFO => (),
-            SQL_NO_DATA => return Ok(false),
-            rc => return Err(rc),
-        }
+
+        rc.check()?;
 
         self.is_positioned = true;
 
-        Ok(self.cols.fetch())
+        Ok(rc != SQL_NO_DATA && self.cols.fetch())
     }
 }
 

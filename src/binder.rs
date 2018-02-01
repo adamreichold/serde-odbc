@@ -4,7 +4,7 @@ use odbc_sys::{SQLLEN, SQLPOINTER};
 
 use serde::ser::{Impossible, Serialize, SerializeStruct, SerializeTuple, Serializer};
 
-use bind_error::{BindError, BindResult};
+use error::{Error, Result};
 use bind_types::BindTypes;
 
 pub trait BinderImpl {
@@ -12,14 +12,14 @@ pub trait BinderImpl {
         &mut self,
         value_ptr: SQLPOINTER,
         indicator_ptr: *mut SQLLEN,
-    ) -> BindResult;
+    ) -> Result<()>;
 
     fn bind_str(
         &mut self,
         length: usize,
         value_ptr: SQLPOINTER,
         indicator_ptr: *mut SQLLEN,
-    ) -> BindResult;
+    ) -> Result<()>;
 }
 
 pub struct Binder<I: BinderImpl> {
@@ -30,7 +30,7 @@ pub struct Binder<I: BinderImpl> {
 }
 
 impl<I: BinderImpl> Binder<I> {
-    pub fn bind<T: Serialize>(impl_: I, value: &T) -> BindResult {
+    pub fn bind<T: Serialize>(impl_: I, value: &T) -> Result<()> {
         let mut binder = Binder {
             impl_,
             value_ptr: ((value as *const T) as *mut T) as SQLPOINTER,
@@ -44,7 +44,7 @@ impl<I: BinderImpl> Binder<I> {
 
 macro_rules! fn_serialize {
     ($method:ident, $type:ident) => {
-        fn $method(self, _value: $type) -> BindResult {
+        fn $method(self, _value: $type) -> Result<()> {
             self.impl_.bind::<$type>(self.value_ptr, self.indicator_ptr)
         }
     }
@@ -52,7 +52,7 @@ macro_rules! fn_serialize {
 
 impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
     type Ok = ();
-    type Error = BindError;
+    type Error = Error;
 
     type SerializeTuple = Self;
     type SerializeTupleStruct = Impossible<Self::Ok, Self::Error>;
@@ -77,7 +77,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
 
     fn_serialize!(serialize_bool, bool);
 
-    fn serialize_bytes(self, value: &[u8]) -> BindResult {
+    fn serialize_bytes(self, value: &[u8]) -> Result<()> {
         self.impl_.bind_str(
             value.len(),
             (value.as_ptr() as *mut u8) as SQLPOINTER,
@@ -85,27 +85,27 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         )
     }
 
-    fn serialize_char(self, _value: char) -> BindResult {
+    fn serialize_char(self, _value: char) -> Result<()> {
         unimplemented!();
     }
 
-    fn serialize_str(self, _value: &str) -> BindResult {
+    fn serialize_str(self, _value: &str) -> Result<()> {
         unimplemented!();
     }
 
-    fn serialize_none(self) -> BindResult {
+    fn serialize_none(self) -> Result<()> {
         unimplemented!();
     }
 
-    fn serialize_some<T: ?Sized + Serialize>(self, _value: &T) -> BindResult {
+    fn serialize_some<T: ?Sized + Serialize>(self, _value: &T) -> Result<()> {
         unimplemented!();
     }
 
-    fn serialize_unit(self) -> BindResult {
+    fn serialize_unit(self) -> Result<()> {
         Ok(())
     }
 
-    fn serialize_unit_struct(self, _name: &'static str) -> BindResult {
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
         Ok(())
     }
 
@@ -114,7 +114,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         _name: &'static str,
         _variant_index: u32,
         _variant: &'static str,
-    ) -> BindResult {
+    ) -> Result<()> {
         Ok(())
     }
 
@@ -122,7 +122,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         self,
         _name: &'static str,
         _value: &T,
-    ) -> BindResult {
+    ) -> Result<()> {
         unimplemented!();
     }
 
@@ -132,11 +132,11 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         _variant_index: u32,
         _variant: &'static str,
         _value: &T,
-    ) -> BindResult {
+    ) -> Result<()> {
         unimplemented!();
     }
 
-    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple, BindError> {
+    fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
         Ok(self)
     }
 
@@ -144,7 +144,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         self,
         _name: &'static str,
         _len: usize,
-    ) -> Result<Self::SerializeTupleStruct, BindError> {
+    ) -> Result<Self::SerializeTupleStruct> {
         unimplemented!();
     }
 
@@ -154,15 +154,11 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         _variant_index: u32,
         _variant: &'static str,
         _len: usize,
-    ) -> Result<Self::SerializeTupleVariant, BindError> {
+    ) -> Result<Self::SerializeTupleVariant> {
         unimplemented!();
     }
 
-    fn serialize_struct(
-        self,
-        name: &'static str,
-        len: usize,
-    ) -> Result<Self::SerializeStruct, BindError> {
+    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
         self.set_indicator = (name == "Nullable" || name == "String") && len == 2;
 
         Ok(self)
@@ -174,42 +170,42 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         _variant_index: u32,
         _variant: &'static str,
         _len: usize,
-    ) -> Result<Self::SerializeStructVariant, BindError> {
+    ) -> Result<Self::SerializeStructVariant> {
         unimplemented!();
     }
 
-    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, BindError> {
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq> {
         unimplemented!();
     }
 
-    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, BindError> {
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
         unimplemented!();
     }
 }
 
 impl<'a, I: BinderImpl> SerializeTuple for &'a mut Binder<I> {
     type Ok = ();
-    type Error = BindError;
+    type Error = Error;
 
-    fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> BindResult {
+    fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<()> {
         self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
         value.serialize(&mut **self)
     }
 
-    fn end(self) -> BindResult {
+    fn end(self) -> Result<()> {
         Ok(())
     }
 }
 
 impl<'a, I: BinderImpl> SerializeStruct for &'a mut Binder<I> {
     type Ok = ();
-    type Error = BindError;
+    type Error = Error;
 
     fn serialize_field<T: ?Sized + Serialize>(
         &mut self,
         name: &'static str,
         value: &T,
-    ) -> BindResult {
+    ) -> Result<()> {
         if self.set_indicator && name == "indicator" {
             self.indicator_ptr = ((value as *const T) as *mut T) as *mut SQLLEN;
             return Ok(());
@@ -219,7 +215,7 @@ impl<'a, I: BinderImpl> SerializeStruct for &'a mut Binder<I> {
         value.serialize(&mut **self)
     }
 
-    fn end(self) -> BindResult {
+    fn end(self) -> Result<()> {
         if self.set_indicator {
             self.indicator_ptr = null_mut();
             self.set_indicator = false;

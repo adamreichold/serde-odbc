@@ -1,11 +1,10 @@
 use std::mem::size_of;
 
-use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_C_CHAR, SQL_SUCCESS,
-               SQL_SUCCESS_WITH_INFO};
+use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_C_CHAR};
 
 use serde::Serialize;
 
-use super::bind_error::{BindError, BindResult};
+use super::error::{OdbcResult, Result};
 use super::bind_types::BindTypes;
 use super::binder::{Binder, BinderImpl};
 
@@ -14,7 +13,7 @@ struct ColBinder {
     col_nr: SQLUSMALLINT,
 }
 
-pub unsafe fn bind_cols<C: Serialize>(stmt: SQLHSTMT, cols: &C) -> BindResult {
+pub unsafe fn bind_cols<C: Serialize>(stmt: SQLHSTMT, cols: &C) -> Result<()> {
     Binder::bind(ColBinder { stmt, col_nr: 0 }, cols)
 }
 
@@ -23,10 +22,10 @@ impl BinderImpl for ColBinder {
         &mut self,
         value_ptr: SQLPOINTER,
         indicator_ptr: *mut SQLLEN,
-    ) -> BindResult {
+    ) -> Result<()> {
         self.col_nr += 1;
 
-        let rc = unsafe {
+        unsafe {
             SQLBindCol(
                 self.stmt,
                 self.col_nr,
@@ -35,12 +34,7 @@ impl BinderImpl for ColBinder {
                 size_of::<T>() as SQLLEN,
                 indicator_ptr,
             )
-        };
-
-        match rc {
-            SQL_SUCCESS | SQL_SUCCESS_WITH_INFO => Ok(()),
-            rc => Err(BindError {}), // TODO
-        }
+        }.check()
     }
 
     fn bind_str(
@@ -48,10 +42,10 @@ impl BinderImpl for ColBinder {
         length: usize,
         value_ptr: SQLPOINTER,
         indicator_ptr: *mut SQLLEN,
-    ) -> BindResult {
+    ) -> Result<()> {
         self.col_nr += 1;
 
-        let rc = unsafe {
+        unsafe {
             SQLBindCol(
                 self.stmt,
                 self.col_nr,
@@ -60,11 +54,6 @@ impl BinderImpl for ColBinder {
                 (length + 1) as SQLLEN,
                 indicator_ptr,
             )
-        };
-
-        match rc {
-            SQL_SUCCESS | SQL_SUCCESS_WITH_INFO => Ok(()),
-            rc => Err(BindError {}), // TODO
-        }
+        }.check()
     }
 }

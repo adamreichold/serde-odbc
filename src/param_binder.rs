@@ -1,11 +1,11 @@
 use std::mem::size_of;
 
 use odbc_sys::{SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLULEN, SQLUSMALLINT, SQL_C_CHAR,
-               SQL_PARAM_INPUT, SQL_SUCCESS, SQL_SUCCESS_WITH_INFO, SQL_VARCHAR};
+               SQL_PARAM_INPUT, SQL_VARCHAR};
 
 use serde::ser::Serialize;
 
-use super::bind_error::{BindError, BindResult};
+use super::error::{OdbcResult, Result};
 use super::bind_types::BindTypes;
 use super::binder::{Binder, BinderImpl};
 
@@ -14,7 +14,7 @@ struct ParamBinder {
     param_nr: SQLUSMALLINT,
 }
 
-pub unsafe fn bind_params<P: Serialize>(stmt: SQLHSTMT, params: &P) -> BindResult {
+pub unsafe fn bind_params<P: Serialize>(stmt: SQLHSTMT, params: &P) -> Result<()> {
     Binder::bind(ParamBinder { stmt, param_nr: 0 }, params)
 }
 
@@ -23,10 +23,10 @@ impl BinderImpl for ParamBinder {
         &mut self,
         value_ptr: SQLPOINTER,
         indicator_ptr: *mut SQLLEN,
-    ) -> BindResult {
+    ) -> Result<()> {
         self.param_nr += 1;
 
-        let rc = unsafe {
+        unsafe {
             SQLBindParameter(
                 self.stmt,
                 self.param_nr,
@@ -39,12 +39,7 @@ impl BinderImpl for ParamBinder {
                 size_of::<T>() as SQLLEN,
                 indicator_ptr,
             )
-        };
-
-        match rc {
-            SQL_SUCCESS | SQL_SUCCESS_WITH_INFO => Ok(()),
-            rc => Err(BindError {}), // TODO
-        }
+        }.check()
     }
 
     fn bind_str(
@@ -52,10 +47,10 @@ impl BinderImpl for ParamBinder {
         length: usize,
         value_ptr: SQLPOINTER,
         indicator_ptr: *mut SQLLEN,
-    ) -> BindResult {
+    ) -> Result<()> {
         self.param_nr += 1;
 
-        let rc = unsafe {
+        unsafe {
             SQLBindParameter(
                 self.stmt,
                 self.param_nr,
@@ -68,11 +63,6 @@ impl BinderImpl for ParamBinder {
                 1,
                 indicator_ptr,
             )
-        };
-
-        match rc {
-            SQL_SUCCESS | SQL_SUCCESS_WITH_INFO => Ok(()),
-            rc => Err(BindError {}), // TODO
-        }
+        }.check()
     }
 }

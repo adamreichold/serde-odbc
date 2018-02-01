@@ -6,7 +6,7 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate typenum;
 
-mod bind_error;
+mod error;
 mod bind_types;
 mod binder;
 mod param_binder;
@@ -18,6 +18,7 @@ mod string;
 mod connection;
 mod statement;
 
+pub use error::{Error, Result};
 pub use param_binding::{NoParams, ParamSet, Params};
 pub use col_binding::{Cols, NoCols, RowSet};
 pub use nullable::*;

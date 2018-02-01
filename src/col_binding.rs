@@ -3,11 +3,11 @@ use std::mem::size_of;
 use std::default::Default;
 
 use odbc_sys::{SQLSetStmtAttr, SQLHSTMT, SQLLEN, SQLPOINTER, SQL_ATTR_ROWS_FETCHED_PTR,
-               SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_ROW_BIND_TYPE, SQL_SUCCESS};
+               SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_ROW_BIND_TYPE};
 
 use serde::ser::Serialize;
 
-use super::bind_error::{BindError, BindResult};
+use super::error::{OdbcResult, Result};
 use super::col_binder::bind_cols;
 
 pub trait ColBinding {
@@ -16,7 +16,7 @@ pub trait ColBinding {
     type Cols;
     fn cols(&self) -> &Self::Cols;
 
-    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> BindResult;
+    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> Result<()>;
 
     fn fetch(&mut self) -> bool;
 }
@@ -53,7 +53,7 @@ impl<C: Default + Serialize> ColBinding for Cols<C> {
         &self.data
     }
 
-    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> BindResult {
+    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> Result<()> {
         let data = &self.data as *const C;
 
         if self.last_data != data {
@@ -70,33 +70,22 @@ impl<C: Default + Serialize> ColBinding for Cols<C> {
 }
 
 impl<C: Clone + Default + Serialize> RowSet<C> {
-    unsafe fn bind_row_set(stmt: SQLHSTMT, size: usize, rows_fetched: &mut SQLLEN) -> BindResult {
-        let rc = SQLSetStmtAttr(
+    unsafe fn bind_row_set(stmt: SQLHSTMT, size: usize, rows_fetched: &mut SQLLEN) -> Result<()> {
+        SQLSetStmtAttr(
             stmt,
             SQL_ATTR_ROW_BIND_TYPE,
             size_of::<C>() as SQLPOINTER,
             0,
-        );
-        if rc != SQL_SUCCESS {
-            return Err(BindError {}); // TODO
-        }
+        ).check()?;
 
-        let rc = SQLSetStmtAttr(stmt, SQL_ATTR_ROW_ARRAY_SIZE, size as SQLPOINTER, 0);
-        if rc != SQL_SUCCESS {
-            return Err(BindError {}); // TODO
-        }
+        SQLSetStmtAttr(stmt, SQL_ATTR_ROW_ARRAY_SIZE, size as SQLPOINTER, 0).check()?;
 
-        let rc = SQLSetStmtAttr(
+        SQLSetStmtAttr(
             stmt,
             SQL_ATTR_ROWS_FETCHED_PTR,
             (rows_fetched as *mut SQLLEN) as SQLPOINTER,
             0,
-        );
-        if rc != SQL_SUCCESS {
-            return Err(BindError {}); // TODO
-        }
-
-        Ok(())
+        ).check()
     }
 }
 
@@ -115,7 +104,7 @@ impl<C: Clone + Default + Serialize> ColBinding for RowSet<C> {
         &self.data
     }
 
-    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> BindResult {
+    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> Result<()> {
         let capacity = self.data.capacity();
         self.data.resize(capacity, Default::default());
 

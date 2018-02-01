@@ -3,11 +3,11 @@ use std::mem::size_of;
 use std::default::Default;
 
 use odbc_sys::{SQLSetStmtAttr, SQLHSTMT, SQLPOINTER, SQL_ATTR_PARAMSET_SIZE,
-               SQL_ATTR_PARAM_BIND_TYPE, SQL_SUCCESS};
+               SQL_ATTR_PARAM_BIND_TYPE};
 
 use serde::ser::Serialize;
 
-use super::bind_error::{BindError, BindResult};
+use super::error::{OdbcResult, Result};
 use super::param_binder::bind_params;
 
 pub trait ParamBinding {
@@ -16,7 +16,7 @@ pub trait ParamBinding {
     type Params;
     fn params(&mut self) -> &mut Self::Params;
 
-    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> BindResult;
+    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> Result<()>;
 }
 
 pub struct Params<P: Default + Serialize> {
@@ -45,7 +45,7 @@ impl<P: Default + Serialize> ParamBinding for Params<P> {
         &mut self.data
     }
 
-    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> BindResult {
+    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> Result<()> {
         let data = &self.data as *const P;
 
         if self.last_data != data {
@@ -58,23 +58,15 @@ impl<P: Default + Serialize> ParamBinding for Params<P> {
 }
 
 impl<P: Serialize> ParamSet<P> {
-    unsafe fn bind_param_set(stmt: SQLHSTMT, size: usize) -> BindResult {
-        let rc = SQLSetStmtAttr(
+    unsafe fn bind_param_set(stmt: SQLHSTMT, size: usize) -> Result<()> {
+        SQLSetStmtAttr(
             stmt,
             SQL_ATTR_PARAM_BIND_TYPE,
             size_of::<P>() as SQLPOINTER,
             0,
-        );
-        if rc != SQL_SUCCESS {
-            return Err(BindError {}); // TODO
-        }
+        ).check()?;
 
-        let rc = SQLSetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, size as SQLPOINTER, 0);
-        if rc != SQL_SUCCESS {
-            return Err(BindError {}); // TODO
-        }
-
-        Ok(())
+        SQLSetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, size as SQLPOINTER, 0).check()
     }
 }
 
@@ -92,7 +84,7 @@ impl<P: Serialize> ParamBinding for ParamSet<P> {
         &mut self.data
     }
 
-    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> BindResult {
+    unsafe fn bind(&mut self, stmt: SQLHSTMT) -> Result<()> {
         let data = self.data.first().unwrap() as *const P;
         let size = self.data.len();
 
