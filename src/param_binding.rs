@@ -24,7 +24,9 @@ pub struct Params<P: Default + Serialize> {
     last_data: *const P,
 }
 
-pub type NoParams = Params<()>;
+pub struct NoParams {
+    data: (),
+}
 
 pub struct ParamSet<P: Serialize> {
     data: Vec<P>,
@@ -57,16 +59,18 @@ impl<P: Default + Serialize> ParamBinding for Params<P> {
     }
 }
 
-impl<P: Serialize> ParamSet<P> {
-    unsafe fn bind_param_set(stmt: SQLHSTMT, size: usize) -> Result<()> {
-        SQLSetStmtAttr(
-            stmt,
-            SQL_ATTR_PARAM_BIND_TYPE,
-            size_of::<P>() as SQLPOINTER,
-            0,
-        ).check()?;
+impl ParamBinding for NoParams {
+    fn new() -> Self {
+        NoParams { data: () }
+    }
 
-        SQLSetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, size as SQLPOINTER, 0).check()
+    type Params = ();
+    fn params(&mut self) -> &mut Self::Params {
+        &mut self.data
+    }
+
+    unsafe fn bind(&mut self, _stmt: SQLHSTMT) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -99,6 +103,19 @@ impl<P: Serialize> ParamBinding for ParamSet<P> {
         }
 
         Ok(())
+    }
+}
+
+impl<P: Serialize> ParamSet<P> {
+    unsafe fn bind_param_set(stmt: SQLHSTMT, size: usize) -> Result<()> {
+        SQLSetStmtAttr(
+            stmt,
+            SQL_ATTR_PARAM_BIND_TYPE,
+            size_of::<P>() as SQLPOINTER,
+            0,
+        ).check()?;
+
+        SQLSetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, size as SQLPOINTER, 0).check()
     }
 }
 

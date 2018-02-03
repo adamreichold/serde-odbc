@@ -102,11 +102,11 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
     }
 
     fn serialize_unit(self) -> Result<()> {
-        Ok(())
+        unimplemented!();
     }
 
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
-        Ok(())
+        unimplemented!();
     }
 
     fn serialize_unit_variant(
@@ -115,7 +115,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         _variant_index: u32,
         _variant: &'static str,
     ) -> Result<()> {
-        Ok(())
+        unimplemented!();
     }
 
     fn serialize_newtype_struct<T: ?Sized + Serialize>(

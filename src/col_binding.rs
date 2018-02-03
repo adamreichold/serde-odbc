@@ -31,7 +31,9 @@ pub struct Cols<C: Default + Serialize> {
     last_data: *const C,
 }
 
-pub type NoCols = Cols<()>;
+pub struct NoCols {
+    data: (),
+}
 
 pub struct RowSet<C: Clone + Default + Serialize> {
     data: Vec<C>,
@@ -69,23 +71,22 @@ impl<C: Default + Serialize> ColBinding for Cols<C> {
     }
 }
 
-impl<C: Clone + Default + Serialize> RowSet<C> {
-    unsafe fn bind_row_set(stmt: SQLHSTMT, size: usize, rows_fetched: &mut SQLLEN) -> Result<()> {
-        SQLSetStmtAttr(
-            stmt,
-            SQL_ATTR_ROW_BIND_TYPE,
-            size_of::<C>() as SQLPOINTER,
-            0,
-        ).check()?;
+impl ColBinding for NoCols {
+    fn new() -> Self {
+        NoCols { data: () }
+    }
 
-        SQLSetStmtAttr(stmt, SQL_ATTR_ROW_ARRAY_SIZE, size as SQLPOINTER, 0).check()?;
+    type Cols = ();
+    fn cols(&self) -> &Self::Cols {
+        &self.data
+    }
 
-        SQLSetStmtAttr(
-            stmt,
-            SQL_ATTR_ROWS_FETCHED_PTR,
-            (rows_fetched as *mut SQLLEN) as SQLPOINTER,
-            0,
-        ).check()
+    unsafe fn bind(&mut self, _stmt: SQLHSTMT) -> Result<()> {
+        Ok(())
+    }
+
+    fn fetch(&mut self) -> bool {
+        true
     }
 }
 
@@ -140,6 +141,26 @@ impl<C: Clone + Default + Serialize> FetchSize for RowSet<C> {
         if size > capacity {
             self.data.reserve(size - capacity);
         }
+    }
+}
+
+impl<C: Clone + Default + Serialize> RowSet<C> {
+    unsafe fn bind_row_set(stmt: SQLHSTMT, size: usize, rows_fetched: &mut SQLLEN) -> Result<()> {
+        SQLSetStmtAttr(
+            stmt,
+            SQL_ATTR_ROW_BIND_TYPE,
+            size_of::<C>() as SQLPOINTER,
+            0,
+        ).check()?;
+
+        SQLSetStmtAttr(stmt, SQL_ATTR_ROW_ARRAY_SIZE, size as SQLPOINTER, 0).check()?;
+
+        SQLSetStmtAttr(
+            stmt,
+            SQL_ATTR_ROWS_FETCHED_PTR,
+            (rows_fetched as *mut SQLLEN) as SQLPOINTER,
+            0,
+        ).check()
     }
 }
 
