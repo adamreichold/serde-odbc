@@ -9,6 +9,27 @@ pub struct Nullable<T> {
     value: T,
 }
 
+impl<T> Nullable<T> {
+    pub fn assign(&mut self, value: T) {
+        self.indicator = size_of::<T>() as SQLLEN;
+        self.value = value;
+    }
+
+    pub fn get(&self) -> Option<&T> {
+        match self.indicator {
+            SQL_NULL_DATA => None,
+            _ => Some(&self.value),
+        }
+    }
+
+    pub fn get_mut(&mut self) -> Option<&mut T> {
+        match self.indicator {
+            SQL_NULL_DATA => None,
+            _ => Some(&mut self.value),
+        }
+    }
+}
+
 impl<T> Default for Nullable<T> {
     fn default() -> Self {
         Nullable {
