@@ -78,8 +78,7 @@ impl Service {
             )?;
         create.exec()?;
 
-        let mut select_all = serde_odbc::Statement::new(&conn, "SELECT id, text, done FROM todos")?;
-        serde_odbc::FetchSize::set_fetch_size(&mut select_all, 32);
+        let select_all = serde_odbc::Statement::with_fetch_size(&conn, "SELECT id, text, done FROM todos", 32)?;
 
         let select_one =
             serde_odbc::Statement::new(&conn, "SELECT id, text, done FROM todos WHERE id = ?")?;

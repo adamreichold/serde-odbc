@@ -71,19 +71,27 @@ impl<P: ParamBinding, C: ColBinding> Statement<P, C> {
     }
 }
 
-impl<P: ParamBinding, C: ColBinding> Drop for Statement<P, C> {
-    fn drop(&mut self) {
-        let _ = unsafe { SQLFreeHandle(SQL_HANDLE_STMT, self.handle()) };
-    }
-}
+impl<P: ParamBinding, C: ColBinding + FetchSize> Statement<P, C> {
+    pub fn with_fetch_size(conn: &Connection, stmt_str: &str, fetch_size: usize) -> Result<Self> {
+        let mut stmt = Self::new(conn, stmt_str)?;
 
-impl<P: ParamBinding, C: ColBinding + FetchSize> FetchSize for Statement<P, C> {
-    fn fetch_size(&self) -> usize {
+        stmt.set_fetch_size(fetch_size);
+
+        Ok(stmt)
+    }
+
+    pub fn fetch_size(&self) -> usize {
         self.cols.fetch_size()
     }
 
-    fn set_fetch_size(&mut self, size: usize) {
+    pub fn set_fetch_size(&mut self, size: usize) {
         self.cols.set_fetch_size(size)
+    }
+}
+
+impl<P: ParamBinding, C: ColBinding> Drop for Statement<P, C> {
+    fn drop(&mut self) {
+        let _ = unsafe { SQLFreeHandle(SQL_HANDLE_STMT, self.handle()) };
     }
 }
 
