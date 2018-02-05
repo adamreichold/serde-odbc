@@ -3,10 +3,12 @@ use std::ptr::null_mut;
 use odbc_sys::{SQLAllocHandle, SQLExecute, SQLFetch, SQLFreeHandle, SQLFreeStmt, SQLPrepare,
                SQLHANDLE, SQLHSTMT, SQLINTEGER, SQL_CLOSE, SQL_HANDLE_STMT, SQL_NO_DATA};
 
+use serde::ser::Serialize;
+
 use super::error::{OdbcResult, Result};
 use super::connection::Connection;
 use super::param_binding::ParamBinding;
-use super::col_binding::{ColBinding, FetchSize};
+use super::col_binding::{ColBinding, RowSet};
 
 pub struct Statement<P: ParamBinding, C: ColBinding> {
     stmt: SQLHSTMT,
@@ -71,7 +73,7 @@ impl<P: ParamBinding, C: ColBinding> Statement<P, C> {
     }
 }
 
-impl<P: ParamBinding, C: ColBinding + FetchSize> Statement<P, C> {
+impl<P: ParamBinding, C: Default + Clone + Serialize> Statement<P, RowSet<C>> {
     pub fn with_fetch_size(conn: &Connection, stmt_str: &str, fetch_size: usize) -> Result<Self> {
         let mut stmt = Self::new(conn, stmt_str)?;
 

@@ -21,11 +21,6 @@ pub trait ColBinding {
     fn fetch(&mut self) -> bool;
 }
 
-pub trait FetchSize {
-    fn fetch_size(&self) -> usize;
-    fn set_fetch_size(&mut self, size: usize);
-}
-
 pub struct Cols<C: Default + Serialize> {
     data: C,
     last_data: *const C,
@@ -131,20 +126,18 @@ impl<C: Clone + Default + Serialize> ColBinding for RowSet<C> {
     }
 }
 
-impl<C: Clone + Default + Serialize> FetchSize for RowSet<C> {
-    fn fetch_size(&self) -> usize {
+impl<C: Clone + Default + Serialize> RowSet<C> {
+    pub fn fetch_size(&self) -> usize {
         self.data.capacity()
     }
 
-    fn set_fetch_size(&mut self, size: usize) {
+    pub fn set_fetch_size(&mut self, size: usize) {
         let capacity = self.data.capacity();
         if size > capacity {
             self.data.reserve(size - capacity);
         }
     }
-}
 
-impl<C: Clone + Default + Serialize> RowSet<C> {
     unsafe fn bind_row_set(stmt: SQLHSTMT, size: usize, rows_fetched: &mut SQLLEN) -> Result<()> {
         SQLSetStmtAttr(
             stmt,

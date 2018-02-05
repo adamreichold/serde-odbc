@@ -20,7 +20,7 @@ mod statement;
 
 pub use error::{Error, Result};
 pub use param_binding::{NoParams, ParamSet, Params};
-pub use col_binding::{Cols, FetchSize, NoCols, RowSet};
+pub use col_binding::{Cols, NoCols, RowSet};
 pub use nullable::*;
 pub use string::*;
 pub use connection::*;
