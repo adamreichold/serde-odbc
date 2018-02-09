@@ -14,7 +14,7 @@ struct ByteArray<N: ArrayLength<u8>>(GenericArray<u8, N>);
 
 impl<N: ArrayLength<u8>> Serialize for ByteArray<N> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_bytes(&self.0.as_slice())
+        serializer.serialize_bytes(self.0.as_slice())
     }
 }
 
@@ -48,14 +48,14 @@ impl<N: ArrayLength<u8>> String<N> {
         }
     }
 
-    pub fn as_slice<'a>(&'a self) -> Option<&'a [u8]> {
+    pub fn as_slice(&self) -> Option<&[u8]> {
         match self.indicator {
             SQL_NULL_DATA => None,
             indicator => Some(&self.value.0.as_slice()[..indicator as usize]),
         }
     }
 
-    pub fn as_mut_slice<'a>(&'a mut self) -> Option<&'a mut [u8]> {
+    pub fn as_mut_slice(&mut self) -> Option<&mut [u8]> {
         match self.indicator {
             SQL_NULL_DATA => None,
             indicator => Some(&mut self.value.0.as_mut_slice()[..indicator as usize]),

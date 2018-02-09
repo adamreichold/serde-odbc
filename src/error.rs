@@ -16,18 +16,18 @@ pub type Result<T> = result::Result<T, Error>;
 
 impl error::Error for Error {
     fn description(&self) -> &str {
-        match self {
-            &Error::Odbc(_) => "ODBC error",
-            &Error::Serde(_) => "Serde error",
+        match *self {
+            Error::Odbc(_) => "ODBC error",
+            Error::Serde(_) => "Serde error",
         }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> result::Result<(), fmt::Error> {
-        match self {
-            &Error::Odbc(rc) => write!(fmt, "ODBC error: {:?}", rc),
-            &Error::Serde(ref msg) => write!(fmt, "Serde error: {}", msg),
+        match *self {
+            Error::Odbc(rc) => write!(fmt, "ODBC error: {:?}", rc),
+            Error::Serde(ref msg) => write!(fmt, "Serde error: {}", msg),
         }
     }
 }

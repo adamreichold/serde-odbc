@@ -67,7 +67,7 @@ impl Connection {
         self.0 as SQLHANDLE
     }
 
-    pub fn begin<'conn>(&'conn self) -> Transaction<'conn> {
+    pub fn begin(&self) -> Transaction {
         Transaction(Some(self))
     }
 }
