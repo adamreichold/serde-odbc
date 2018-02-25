@@ -2,6 +2,13 @@
 name = "serde-odbc"
 version = "0.1.0"
 authors = ["Adam Reichold <adam.reichold@t-online.de>"]
+license = "LGPL-3.0"
+repository = "https://github.com/adamreichold/serde-odbc"
+description = "Bind serializable Rust data to ODBC statements"
+categories = ["database"]
+
+[badges]
+travis-ci = { repository = "adamreichold/serde-odbc" }
 
 [dependencies]
 odbc-sys = "0.5"
