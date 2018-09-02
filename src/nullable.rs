@@ -61,7 +61,7 @@ impl<T> From<Option<T>> for Nullable<T> {
             None => Default::default(),
             Some(value) => Nullable {
                 indicator: size_of::<T>() as SQLLEN,
-                value: value,
+                value,
             },
         }
     }
