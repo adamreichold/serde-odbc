@@ -14,10 +14,10 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
-use std::mem::uninitialized;
-use std::ptr::copy_nonoverlapping;
 use std::cmp::min;
 use std::default::Default;
+use std::mem::uninitialized;
+use std::ptr::copy_nonoverlapping;
 
 use odbc_sys::{SQLLEN, SQL_NULL_DATA};
 
@@ -111,13 +111,13 @@ impl<'a, N: ArrayLength<u8>> Into<Option<&'a mut [u8]>> for &'a mut String<N> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::col_binding::Cols;
+    use super::super::connection::{Connection, Environment};
+    use super::super::param_binding::Params;
+    use super::super::statement::Statement;
+    use super::super::tests::CONN_STR;
     use super::*;
     use typenum::U8;
-    use super::super::tests::CONN_STR;
-    use super::super::connection::{Connection, Environment};
-    use super::super::statement::Statement;
-    use super::super::param_binding::Params;
-    use super::super::col_binding::Cols;
 
     #[test]
     fn default_str() {

@@ -14,8 +14,8 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
-use std::mem::{size_of, uninitialized};
 use std::default::Default;
+use std::mem::{size_of, uninitialized};
 
 use odbc_sys::{SQLLEN, SQL_NULL_DATA};
 
@@ -78,12 +78,12 @@ impl<T> Into<Option<T>> for Nullable<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::tests::CONN_STR;
-    use super::super::connection::{Connection, Environment};
-    use super::super::statement::Statement;
-    use super::super::param_binding::Params;
     use super::super::col_binding::Cols;
+    use super::super::connection::{Connection, Environment};
+    use super::super::param_binding::Params;
+    use super::super::statement::Statement;
+    use super::super::tests::CONN_STR;
+    use super::*;
 
     #[test]
     fn bind_nullable_param() {

@@ -22,25 +22,25 @@ extern crate serde_derive;
 #[cfg(test)]
 extern crate typenum;
 
-mod error;
 mod bind_types;
 mod binder;
-mod param_binder;
 mod col_binder;
-mod param_binding;
 mod col_binding;
-mod nullable;
-mod string;
 mod connection;
+mod error;
+mod nullable;
+mod param_binder;
+mod param_binding;
 mod statement;
+mod string;
 
-pub use error::{Error, Result};
-pub use param_binding::{NoParams, ParamSet, Params};
 pub use col_binding::{Cols, NoCols, RowSet};
-pub use nullable::*;
-pub use string::*;
 pub use connection::*;
+pub use error::{Error, Result};
+pub use nullable::*;
+pub use param_binding::{NoParams, ParamSet, Params};
 pub use statement::*;
+pub use string::*;
 
 #[cfg(test)]
 mod tests {

@@ -15,8 +15,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 use std::error;
-use std::result;
 use std::fmt;
+use std::result;
 
 use odbc_sys::{SQLRETURN, SQL_NO_DATA, SQL_SUCCESS, SQL_SUCCESS_WITH_INFO};
 

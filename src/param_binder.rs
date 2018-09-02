@@ -16,14 +16,16 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 use std::mem::size_of;
 
-use odbc_sys::{SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLULEN, SQLUSMALLINT, SQL_C_CHAR,
-               SQL_PARAM_INPUT, SQL_VARCHAR};
+use odbc_sys::{
+    SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLULEN, SQLUSMALLINT, SQL_C_CHAR,
+    SQL_PARAM_INPUT, SQL_VARCHAR,
+};
 
 use serde::ser::Serialize;
 
-use super::error::{OdbcResult, Result};
 use super::bind_types::BindTypes;
 use super::binder::{Binder, BinderImpl};
+use super::error::{OdbcResult, Result};
 
 struct ParamBinder {
     stmt: SQLHSTMT,

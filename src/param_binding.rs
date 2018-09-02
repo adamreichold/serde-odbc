@@ -14,12 +14,13 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
-use std::ptr::null;
-use std::mem::size_of;
 use std::default::Default;
+use std::mem::size_of;
+use std::ptr::null;
 
-use odbc_sys::{SQLSetStmtAttr, SQLHSTMT, SQLPOINTER, SQL_ATTR_PARAMSET_SIZE,
-               SQL_ATTR_PARAM_BIND_TYPE};
+use odbc_sys::{
+    SQLSetStmtAttr, SQLHSTMT, SQLPOINTER, SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_PARAM_BIND_TYPE,
+};
 
 use serde::ser::Serialize;
 
@@ -137,11 +138,11 @@ impl<P: Serialize> ParamSet<P> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::tests::CONN_STR;
+    use super::super::col_binding::{Cols, NoCols};
     use super::super::connection::{Connection, Environment};
     use super::super::statement::Statement;
-    use super::super::col_binding::{Cols, NoCols};
+    use super::super::tests::CONN_STR;
+    use super::*;
 
     #[test]
     fn bind_param_set() {

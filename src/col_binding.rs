@@ -14,17 +14,19 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
-use std::ptr::null;
-use std::mem::size_of;
 use std::default::Default;
+use std::mem::size_of;
+use std::ptr::null;
 
-use odbc_sys::{SQLSetStmtAttr, SQLHSTMT, SQLLEN, SQLPOINTER, SQL_ATTR_ROWS_FETCHED_PTR,
-               SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_ROW_BIND_TYPE};
+use odbc_sys::{
+    SQLSetStmtAttr, SQLHSTMT, SQLLEN, SQLPOINTER, SQL_ATTR_ROWS_FETCHED_PTR,
+    SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_ROW_BIND_TYPE,
+};
 
 use serde::ser::Serialize;
 
-use super::error::{OdbcResult, Result};
 use super::col_binder::bind_cols;
+use super::error::{OdbcResult, Result};
 
 pub trait ColBinding {
     fn new() -> Self;
@@ -175,11 +177,11 @@ impl<C: Clone + Default + Serialize> RowSet<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::tests::CONN_STR;
     use super::super::connection::{Connection, Environment};
-    use super::super::statement::Statement;
     use super::super::param_binding::{NoParams, Params};
+    use super::super::statement::Statement;
+    use super::super::tests::CONN_STR;
+    use super::*;
 
     #[test]
     fn bind_row_set() {

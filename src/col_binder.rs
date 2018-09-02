@@ -20,9 +20,9 @@ use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_C_CHA
 
 use serde::Serialize;
 
-use super::error::{OdbcResult, Result};
 use super::bind_types::BindTypes;
 use super::binder::{Binder, BinderImpl};
+use super::error::{OdbcResult, Result};
 
 struct ColBinder {
     stmt: SQLHSTMT,

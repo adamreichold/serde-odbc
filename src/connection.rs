@@ -16,11 +16,12 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 use std::ptr::null_mut;
 
-use odbc_sys::{SQLAllocHandle, SQLDriverConnect, SQLEndTran, SQLFreeHandle, SQLSetConnectAttr,
-               SQLSetEnvAttr, SQL_OV_ODBC3, SqlCompletionType, SQLHANDLE, SQLHDBC, SQLHENV,
-               SQLSMALLINT, SQL_ATTR_AUTOCOMMIT, SQL_ATTR_CONNECTION_POOLING,
-               SQL_ATTR_ODBC_VERSION, SQL_COMMIT, SQL_DRIVER_COMPLETE_REQUIRED, SQL_HANDLE_DBC,
-               SQL_HANDLE_ENV, SQL_ROLLBACK};
+use odbc_sys::{
+    SQLAllocHandle, SQLDriverConnect, SQLEndTran, SQLFreeHandle, SQLSetConnectAttr, SQLSetEnvAttr,
+    SqlCompletionType, SQLHANDLE, SQLHDBC, SQLHENV, SQLSMALLINT, SQL_ATTR_AUTOCOMMIT,
+    SQL_ATTR_CONNECTION_POOLING, SQL_ATTR_ODBC_VERSION, SQL_COMMIT, SQL_DRIVER_COMPLETE_REQUIRED,
+    SQL_HANDLE_DBC, SQL_HANDLE_ENV, SQL_OV_ODBC3, SQL_ROLLBACK,
+};
 
 use error::{OdbcResult, Result};
 
@@ -120,8 +121,8 @@ impl<'conn> Drop for Transaction<'conn> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::tests::CONN_STR;
+    use super::*;
 
     #[test]
     fn make_env() {

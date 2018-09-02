@@ -16,15 +16,17 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 use std::ptr::null_mut;
 
-use odbc_sys::{SQLAllocHandle, SQLExecute, SQLFetch, SQLFreeHandle, SQLFreeStmt, SQLPrepare,
-               SQLHANDLE, SQLHSTMT, SQLINTEGER, SQL_CLOSE, SQL_HANDLE_STMT, SQL_NO_DATA};
+use odbc_sys::{
+    SQLAllocHandle, SQLExecute, SQLFetch, SQLFreeHandle, SQLFreeStmt, SQLPrepare, SQLHANDLE,
+    SQLHSTMT, SQLINTEGER, SQL_CLOSE, SQL_HANDLE_STMT, SQL_NO_DATA,
+};
 
 use serde::ser::Serialize;
 
-use super::error::{OdbcResult, Result};
-use super::connection::Connection;
-use super::param_binding::ParamBinding;
 use super::col_binding::{ColBinding, RowSet};
+use super::connection::Connection;
+use super::error::{OdbcResult, Result};
+use super::param_binding::ParamBinding;
 
 pub struct Statement<P: ParamBinding, C: ColBinding> {
     stmt: SQLHSTMT,
@@ -115,11 +117,11 @@ impl<P: ParamBinding, C: ColBinding> Drop for Statement<P, C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use super::super::tests::CONN_STR;
+    use super::super::col_binding::Cols;
     use super::super::connection::Environment;
     use super::super::param_binding::Params;
-    use super::super::col_binding::Cols;
+    use super::super::tests::CONN_STR;
+    use super::*;
 
     #[test]
     fn exec_stmt() {

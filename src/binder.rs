@@ -20,8 +20,8 @@ use odbc_sys::{SQLLEN, SQLPOINTER};
 
 use serde::ser::{Impossible, Serialize, SerializeStruct, SerializeTuple, Serializer};
 
-use error::{Error, Result};
 use bind_types::BindTypes;
+use error::{Error, Result};
 
 pub trait BinderImpl {
     fn bind<T: BindTypes>(

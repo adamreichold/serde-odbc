@@ -31,7 +31,7 @@ macro_rules! impl_bind_types {
                 SqlDataType::$data_type
             }
         }
-    }
+    };
 }
 
 impl_bind_types!(i8, SQL_C_STINYINT, SQL_EXT_TINYINT);

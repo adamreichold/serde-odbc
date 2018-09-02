@@ -26,8 +26,8 @@ extern crate serde_odbc;
 extern crate typenum;
 
 use std::cell::{RefCell, RefMut};
-use std::rc::Rc;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 #[derive(Serialize, Deserialize)]
 struct Todo {
@@ -94,7 +94,8 @@ impl Service {
             )?;
         create.exec()?;
 
-        let select_all = serde_odbc::Statement::with_fetch_size(&conn, "SELECT id, text, done FROM todos", 32)?;
+        let select_all =
+            serde_odbc::Statement::with_fetch_size(&conn, "SELECT id, text, done FROM todos", 32)?;
 
         let select_one =
             serde_odbc::Statement::new(&conn, "SELECT id, text, done FROM todos WHERE id = ?")?;
@@ -301,7 +302,10 @@ impl hyper::server::Service for ServiceHandle {
             }
         }
 
-        let id: Option<i32> = svc.match_path.captures(req.path()).map(|caps| caps["id"].parse().unwrap());
+        let id: Option<i32> = svc
+            .match_path
+            .captures(req.path())
+            .map(|caps| caps["id"].parse().unwrap());
 
         if let Some(id) = id {
             if req.method() == &hyper::Method::Get {
