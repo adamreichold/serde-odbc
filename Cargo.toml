@@ -1,6 +1,6 @@
 [package]
 name = "serde-odbc"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Adam Reichold <adam.reichold@t-online.de>"]
 license = "LGPL-3.0"
 repository = "https://github.com/adamreichold/serde-odbc"
