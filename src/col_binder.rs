@@ -50,7 +50,8 @@ impl BinderImpl for ColBinder {
                 size_of::<T>() as SQLLEN,
                 indicator_ptr,
             )
-        }.check()
+        }
+        .check()
     }
 
     fn bind_str(
@@ -70,6 +71,7 @@ impl BinderImpl for ColBinder {
                 (length + 1) as SQLLEN,
                 indicator_ptr,
             )
-        }.check()
+        }
+        .check()
     }
 }

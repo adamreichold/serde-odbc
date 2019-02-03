@@ -73,7 +73,8 @@ impl Connection {
                 null_mut(),
                 SQL_DRIVER_COMPLETE_REQUIRED,
             )
-        }.check()?;
+        }
+        .check()?;
 
         unsafe { SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, null_mut(), 0) }.check()?;
 

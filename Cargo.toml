@@ -13,7 +13,7 @@ categories = ["database"]
 travis-ci = { repository = "adamreichold/serde-odbc" }
 
 [dependencies]
-odbc-sys = "0.6"
+odbc-sys = "0.7"
 serde = "1.0"
 serde_derive = "1.0"
 typenum = "1.9"

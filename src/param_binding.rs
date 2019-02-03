@@ -130,7 +130,8 @@ impl<P: Serialize> ParamSet<P> {
             SQL_ATTR_PARAM_BIND_TYPE,
             size_of::<P>() as SQLPOINTER,
             0,
-        ).check()?;
+        )
+        .check()?;
 
         SQLSetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, size as SQLPOINTER, 0).check()
     }

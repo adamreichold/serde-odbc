@@ -162,7 +162,8 @@ impl<C: Clone + Default + Serialize> RowSet<C> {
             SQL_ATTR_ROW_BIND_TYPE,
             size_of::<C>() as SQLPOINTER,
             0,
-        ).check()?;
+        )
+        .check()?;
 
         SQLSetStmtAttr(stmt, SQL_ATTR_ROW_ARRAY_SIZE, size as SQLPOINTER, 0).check()?;
 
@@ -171,7 +172,8 @@ impl<C: Clone + Default + Serialize> RowSet<C> {
             SQL_ATTR_ROWS_FETCHED_PTR,
             (rows_fetched as *mut SQLLEN) as SQLPOINTER,
             0,
-        ).check()
+        )
+        .check()
     }
 }
 

@@ -127,8 +127,8 @@ mod tests {
 
     #[test]
     fn make_str() {
-        let value: String<U8> = "foobar".as_bytes().into();
-        assert_eq!(Some("foobar".as_bytes()), value.as_slice());
+        let value: String<U8> = (&b"foobar"[..]).into();
+        assert_eq!(Some(&b"foobar"[..]), value.as_slice());
     }
 
     #[test]
@@ -138,10 +138,10 @@ mod tests {
 
         let mut stmt: Statement<Params<String<U8>>, Cols<String<U8>>> =
             Statement::new(&conn, "SELECT ?").unwrap();
-        stmt.params().assign("foobarfoobar".as_bytes());
+        stmt.params().assign(b"foobarfoobar");
         stmt.exec().unwrap();
         assert!(stmt.fetch().unwrap());
-        assert_eq!(Some("foobarfo".as_bytes()), stmt.cols().as_slice());
+        assert_eq!(Some(&b"foobarfo"[..]), stmt.cols().as_slice());
         assert!(!stmt.fetch().unwrap());
     }
 }

@@ -44,5 +44,5 @@ pub use string::*;
 
 #[cfg(test)]
 mod tests {
-    pub const CONN_STR: &'static str = "Driver=Sqlite3;Database=:memory:;";
+    pub const CONN_STR: &str = "Driver=Sqlite3;Database=:memory:;";
 }

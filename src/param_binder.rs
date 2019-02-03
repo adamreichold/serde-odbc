@@ -57,7 +57,8 @@ impl BinderImpl for ParamBinder {
                 size_of::<T>() as SQLLEN,
                 indicator_ptr,
             )
-        }.check()
+        }
+        .check()
     }
 
     fn bind_str(
@@ -81,6 +82,7 @@ impl BinderImpl for ParamBinder {
                 1,
                 indicator_ptr,
             )
-        }.check()
+        }
+        .check()
     }
 }
