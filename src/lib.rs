@@ -14,14 +14,6 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
-extern crate generic_array;
-extern crate odbc_sys;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-#[cfg(test)]
-extern crate typenum;
-
 mod bind_types;
 mod binder;
 mod col_binder;

@@ -23,7 +23,7 @@ use odbc_sys::{
     SQL_HANDLE_DBC, SQL_HANDLE_ENV, SQL_OV_ODBC3, SQL_ROLLBACK,
 };
 
-use error::{OdbcResult, Result};
+use crate::error::{OdbcResult, Result};
 
 pub struct Environment(SQLHENV);
 
