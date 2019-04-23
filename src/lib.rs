@@ -34,6 +34,8 @@ pub use param_binding::{NoParams, ParamSet, Params};
 pub use statement::*;
 pub use string::*;
 
+pub use generic_array;
+
 #[cfg(test)]
 mod tests {
     pub const CONN_STR: &str = "Driver=Sqlite3;Database=:memory:;";

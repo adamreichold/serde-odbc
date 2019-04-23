@@ -117,7 +117,7 @@ mod tests {
     use super::super::statement::Statement;
     use super::super::tests::CONN_STR;
     use super::*;
-    use typenum::U8;
+    use generic_array::typenum::U8;
 
     #[test]
     fn default_str() {

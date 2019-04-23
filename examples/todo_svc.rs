@@ -18,6 +18,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use actix_web::{http::Method, server, App, HttpRequest, HttpResponse, Json};
+use generic_array::typenum::U4096;
 use serde::Serialize;
 use serde_derive::{Deserialize, Serialize};
 
@@ -30,7 +31,7 @@ struct Todo {
 #[derive(Clone, Default, Serialize)]
 struct PersistentTodo {
     id: serde_odbc::Nullable<i32>,
-    text: serde_odbc::String<typenum::U4096>,
+    text: serde_odbc::String<U4096>,
     done: bool,
 }
 

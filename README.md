@@ -8,7 +8,7 @@ The main function of this crate is to use the `Serialize` trait to automatically
 #[derive(Clone, Default, Serialize)]
 struct Todo {
     id: serde_odbc::Nullable<i32>,
-    text: serde_odbc::String<typenum::U4096>,
+    text: serde_odbc::String<generic_array::typenum::U4096>,
     done: bool,
 }
 
