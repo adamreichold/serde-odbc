@@ -194,7 +194,7 @@ fn handle_req<T: Serialize, H: FnOnce(&mut Service) -> Result<T, serde_odbc::Err
 }
 
 fn get_todos(req: HttpRequest<RefCell<Service>>) -> HttpResponse {
-    handle_req(req, |svc| svc.get_todos())
+    handle_req(req, Service::get_todos)
 }
 
 fn get_todo(req: HttpRequest<RefCell<Service>>) -> HttpResponse {

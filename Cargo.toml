@@ -1,7 +1,7 @@
 [package]
 edition = "2018"
 name = "serde-odbc"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Adam Reichold <adam.reichold@t-online.de>"]
 license = "LGPL-3.0"
 repository = "https://github.com/adamreichold/serde-odbc"
@@ -14,11 +14,11 @@ categories = ["database"]
 travis-ci = { repository = "adamreichold/serde-odbc" }
 
 [dependencies]
-odbc-sys = "0.7"
+odbc-sys = "0.8"
 serde = "1.0"
 serde_derive = "1.0"
 typenum = "1.9"
-generic-array = "0.12"
+generic-array = "0.13"
 
 [dev-dependencies]
 actix-web = "0.7"
