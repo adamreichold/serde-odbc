@@ -15,9 +15,8 @@ travis-ci = { repository = "adamreichold/serde-odbc" }
 
 [dependencies]
 odbc-sys = "0.8"
-serde = "1.0"
-serde_derive = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 generic-array = "0.13"
 
 [dev-dependencies]
-actix-web = "0.7"
+actix-web = "1.0"

@@ -18,7 +18,7 @@ use std::default::Default;
 use std::mem::{size_of, uninitialized};
 
 use odbc_sys::{SQLLEN, SQL_NULL_DATA};
-use serde_derive::Serialize;
+use serde::Serialize;
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub struct Nullable<T> {

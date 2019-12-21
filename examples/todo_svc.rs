@@ -17,10 +17,12 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use actix_web::{http::Method, server, App, HttpRequest, HttpResponse, Json};
+use actix_web::{
+    web::{get, post, Data, Json, Query},
+    App, HttpResponse, HttpServer,
+};
 use generic_array::typenum::U4096;
-use serde::Serialize;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 struct Todo {
@@ -185,33 +187,34 @@ impl Service {
 }
 
 fn handle_req<T: Serialize, H: FnOnce(&mut Service) -> Result<T, serde_odbc::Error>>(
-    req: HttpRequest<RefCell<Service>>,
+    state: &RefCell<Service>,
     handler: H,
 ) -> HttpResponse {
-    match handler(&mut req.state().borrow_mut()) {
+    match handler(&mut state.borrow_mut()) {
         Ok(resp) => HttpResponse::Ok().json(resp),
         Err(err) => HttpResponse::InternalServerError().body(format!("{:?}", err)),
     }
 }
 
-fn get_todos(req: HttpRequest<RefCell<Service>>) -> HttpResponse {
-    handle_req(req, Service::get_todos)
+#[derive(Deserialize)]
+struct Id {
+    id: i32,
 }
 
-fn get_todo(req: HttpRequest<RefCell<Service>>) -> HttpResponse {
-    let id = req.match_info().query("id").unwrap();
-
-    handle_req(req, |svc| svc.get_todo(id))
+fn get_todos(data: Data<RefCell<Service>>) -> HttpResponse {
+    handle_req(&data, Service::get_todos)
 }
 
-fn add_todo((todo, req): (Json<Todo>, HttpRequest<RefCell<Service>>)) -> HttpResponse {
-    handle_req(req, |svc| svc.add_todo(&todo))
+fn get_todo((data, query): (Data<RefCell<Service>>, Query<Id>)) -> HttpResponse {
+    handle_req(&data, |svc| svc.get_todo(query.id))
 }
 
-fn set_todo((todo, req): (Json<Todo>, HttpRequest<RefCell<Service>>)) -> HttpResponse {
-    let id = req.match_info().query("id").unwrap();
+fn add_todo((todo, data): (Json<Todo>, Data<RefCell<Service>>)) -> HttpResponse {
+    handle_req(&data, |svc| svc.add_todo(&todo))
+}
 
-    handle_req(req, |svc| svc.set_todo(id, &todo))
+fn set_todo((todo, data, query): (Json<Todo>, Data<RefCell<Service>>, Query<Id>)) -> HttpResponse {
+    handle_req(&data, |svc| svc.set_todo(query.id, &todo))
 }
 
 fn main() {
@@ -220,14 +223,16 @@ fn main() {
 
     println!("Listening on {}...", bind_addr);
 
-    server::new(move || {
-        App::with_state(RefCell::new(Service::new(conn_str).unwrap()))
-            .route("/todos", Method::GET, get_todos)
-            .route("/todo/{id}", Method::GET, get_todo)
-            .route("/todos", Method::POST, add_todo)
-            .route("/todo/{id}", Method::POST, set_todo)
+    HttpServer::new(move || {
+        App::new()
+            .data(RefCell::new(Service::new(conn_str).unwrap()))
+            .route("/todos", get().to(get_todos))
+            .route("/todo/{id}", get().to(get_todo))
+            .route("/todos", post().to(add_todo))
+            .route("/todo/{id}", post().to(set_todo))
     })
     .bind(bind_addr)
     .unwrap()
-    .run();
+    .run()
+    .unwrap();
 }
