@@ -15,8 +15,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 use std::cmp::min;
-use std::default::Default;
-use std::mem::uninitialized;
+use std::mem::MaybeUninit;
 use std::ptr::copy_nonoverlapping;
 
 use odbc_sys::{SQLLEN, SQL_NULL_DATA};
@@ -58,7 +57,7 @@ impl<N: ArrayLength<u8>> String<N> {
         unsafe {
             copy_nonoverlapping(
                 value.as_ptr(),
-                (&mut self.value as *mut ByteArray<N>) as *mut u8,
+                self.value.0.as_mut_slice().as_mut_ptr(),
                 self.indicator as usize,
             );
         }
@@ -83,7 +82,10 @@ impl<N: ArrayLength<u8>> Default for String<N> {
     fn default() -> Self {
         String {
             indicator: SQL_NULL_DATA,
-            value: unsafe { uninitialized() },
+            value: unsafe {
+                #[allow(clippy::uninit_assumed_init)]
+                MaybeUninit::uninit().assume_init()
+            },
             null_terminator: 0,
         }
     }
