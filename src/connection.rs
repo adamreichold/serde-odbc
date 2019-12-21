@@ -41,7 +41,7 @@ impl Environment {
         Ok(Environment(env))
     }
 
-    pub unsafe fn handle(&self) -> SQLHANDLE {
+    pub fn handle(&self) -> SQLHANDLE {
         self.0 as SQLHANDLE
     }
 }
@@ -81,7 +81,7 @@ impl Connection {
         Ok(Connection(dbc))
     }
 
-    pub unsafe fn handle(&self) -> SQLHANDLE {
+    pub fn handle(&self) -> SQLHANDLE {
         self.0 as SQLHANDLE
     }
 

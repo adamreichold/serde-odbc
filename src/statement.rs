@@ -53,7 +53,7 @@ impl<P: ParamBinding, C: ColBinding> Statement<P, C> {
         })
     }
 
-    pub unsafe fn handle(&self) -> SQLHANDLE {
+    pub fn handle(&self) -> SQLHANDLE {
         self.stmt as SQLHANDLE
     }
 
