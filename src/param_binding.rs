@@ -20,7 +20,6 @@ use std::ptr::null;
 use odbc_sys::{
     SQLSetStmtAttr, SQLHSTMT, SQLPOINTER, SQL_ATTR_PARAMSET_SIZE, SQL_ATTR_PARAM_BIND_TYPE,
 };
-
 use serde::ser::Serialize;
 
 use super::error::{OdbcResult, Result};

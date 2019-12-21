@@ -17,12 +17,24 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 use std::mem::size_of;
 
 use odbc_sys::{SQLLEN, SQL_NULL_DATA};
-use serde::Serialize;
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 
-#[derive(Clone, Copy, Debug, Serialize)]
+use crate::binder::with_indicator;
+
+#[derive(Clone, Copy, Debug)]
 pub struct Nullable<T> {
     indicator: SQLLEN,
     value: T,
+}
+
+impl<T: Serialize> Serialize for Nullable<T> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut serializer = serializer.serialize_struct("Nullable", 1)?;
+        with_indicator(&self.indicator as *const _ as *mut _, || {
+            serializer.serialize_field("value", &self.value)
+        })?;
+        serializer.end()
+    }
 }
 
 impl<T> Nullable<T> {

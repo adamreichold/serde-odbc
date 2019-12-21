@@ -17,8 +17,7 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 use std::mem::size_of;
 
 use odbc_sys::{SQLBindCol, SQLHSTMT, SQLLEN, SQLPOINTER, SQLUSMALLINT, SQL_C_CHAR};
-
-use serde::Serialize;
+use serde::ser::Serialize;
 
 use super::bind_types::BindTypes;
 use super::binder::{Binder, BinderImpl};

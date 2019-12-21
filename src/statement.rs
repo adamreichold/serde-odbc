@@ -20,7 +20,6 @@ use odbc_sys::{
     SQLAllocHandle, SQLExecute, SQLFetch, SQLFreeHandle, SQLFreeStmt, SQLPrepare, SQLHANDLE,
     SQLHSTMT, SQLINTEGER, SQL_CLOSE, SQL_HANDLE_STMT, SQL_NO_DATA,
 };
-
 use serde::ser::Serialize;
 
 use super::col_binding::{ColBinding, RowSet};

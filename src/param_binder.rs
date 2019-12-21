@@ -20,7 +20,6 @@ use odbc_sys::{
     SQLBindParameter, SQLHSTMT, SQLLEN, SQLPOINTER, SQLULEN, SQLUSMALLINT, SQL_C_CHAR,
     SQL_PARAM_INPUT, SQL_VARCHAR,
 };
-
 use serde::ser::Serialize;
 
 use super::bind_types::BindTypes;

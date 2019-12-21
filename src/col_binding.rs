@@ -21,7 +21,6 @@ use odbc_sys::{
     SQLSetStmtAttr, SQLHSTMT, SQLLEN, SQLPOINTER, SQL_ATTR_ROWS_FETCHED_PTR,
     SQL_ATTR_ROW_ARRAY_SIZE, SQL_ATTR_ROW_BIND_TYPE,
 };
-
 use serde::ser::Serialize;
 
 use super::col_binder::bind_cols;

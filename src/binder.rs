@@ -14,14 +14,43 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
+use std::cell::Cell;
 use std::ptr::null_mut;
 
 use odbc_sys::{SQLLEN, SQLPOINTER};
-
 use serde::ser::{Impossible, Serialize, SerializeStruct, SerializeTuple, Serializer};
 
 use crate::bind_types::BindTypes;
 use crate::error::{Error, Result};
+
+thread_local! {
+    static INDICATOR_PTR: Cell<*mut SQLLEN> = Cell::new(null_mut());
+}
+
+fn take_indicator() -> *mut SQLLEN {
+    INDICATOR_PTR.with(|indicator_ptr| indicator_ptr.replace(null_mut()))
+}
+
+pub fn with_indicator<F, T>(indicator: *mut SQLLEN, f: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    INDICATOR_PTR.with(|indicator_ptr| {
+        indicator_ptr.set(indicator);
+
+        struct Reset<'a>(&'a Cell<*mut SQLLEN>);
+
+        impl Drop for Reset<'_> {
+            fn drop(&mut self) {
+                self.0.set(null_mut());
+            }
+        }
+
+        let _reset = Reset(indicator_ptr);
+
+        f()
+    })
+}
 
 pub trait BinderImpl {
     fn bind<T: BindTypes>(
@@ -41,8 +70,6 @@ pub trait BinderImpl {
 pub struct Binder<I: BinderImpl> {
     impl_: I,
     value_ptr: SQLPOINTER,
-    indicator_ptr: *mut SQLLEN,
-    set_indicator: bool,
 }
 
 impl<I: BinderImpl> Binder<I> {
@@ -50,8 +77,6 @@ impl<I: BinderImpl> Binder<I> {
         let mut binder = Binder {
             impl_,
             value_ptr: ((value as *const T) as *mut T) as SQLPOINTER,
-            indicator_ptr: null_mut(),
-            set_indicator: false,
         };
 
         value.serialize(&mut binder)
@@ -61,7 +86,7 @@ impl<I: BinderImpl> Binder<I> {
 macro_rules! fn_serialize {
     ($method:ident, $type:ident) => {
         fn $method(self, _value: $type) -> Result<()> {
-            self.impl_.bind::<$type>(self.value_ptr, self.indicator_ptr)
+            self.impl_.bind::<$type>(self.value_ptr, take_indicator())
         }
     }
 }
@@ -97,7 +122,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         self.impl_.bind_str(
             value.len(),
             (value.as_ptr() as *mut u8) as SQLPOINTER,
-            self.indicator_ptr,
+            take_indicator(),
         )
     }
 
@@ -174,9 +199,7 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
         unimplemented!();
     }
 
-    fn serialize_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeStruct> {
-        self.set_indicator = (name == "Nullable" || name == "String") && len == 2;
-
+    fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
         Ok(self)
     }
 
@@ -219,24 +242,14 @@ impl<'a, I: BinderImpl> SerializeStruct for &'a mut Binder<I> {
 
     fn serialize_field<T: ?Sized + Serialize>(
         &mut self,
-        name: &'static str,
+        _name: &'static str,
         value: &T,
     ) -> Result<()> {
-        if self.set_indicator && name == "indicator" {
-            self.indicator_ptr = ((value as *const T) as *mut T) as *mut SQLLEN;
-            return Ok(());
-        }
-
         self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<()> {
-        if self.set_indicator {
-            self.indicator_ptr = null_mut();
-            self.set_indicator = false;
-        }
-
         Ok(())
     }
 }

@@ -19,7 +19,6 @@ use std::fmt;
 use std::result;
 
 use odbc_sys::{SQLRETURN, SQL_NO_DATA, SQL_SUCCESS, SQL_SUCCESS_WITH_INFO};
-
 use serde::ser;
 
 #[derive(Debug)]

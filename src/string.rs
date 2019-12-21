@@ -18,11 +18,11 @@ use std::cmp::min;
 use std::mem::MaybeUninit;
 use std::ptr::copy_nonoverlapping;
 
+use generic_array::{ArrayLength, GenericArray};
 use odbc_sys::{SQLLEN, SQL_NULL_DATA};
-
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
-use generic_array::{ArrayLength, GenericArray};
+use crate::binder::with_indicator;
 
 #[derive(Clone)]
 struct ByteArray<N: ArrayLength<u8>>(GenericArray<u8, N>);
@@ -43,9 +43,10 @@ pub struct String<N: ArrayLength<u8>> {
 
 impl<N: ArrayLength<u8>> Serialize for String<N> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut serializer = serializer.serialize_struct("String", 2)?;
-        serializer.serialize_field("indicator", &self.indicator)?;
-        serializer.serialize_field("value", &self.value)?;
+        let mut serializer = serializer.serialize_struct("String", 1)?;
+        with_indicator(&self.indicator as *const _ as *mut _, || {
+            serializer.serialize_field("value", &self.value)
+        })?;
         serializer.end()
     }
 }
