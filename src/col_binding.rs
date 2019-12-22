@@ -37,7 +37,7 @@ pub trait ColBinding {
     fn fetch(&mut self) -> bool;
 }
 
-pub struct Cols<C: Default + Serialize> {
+pub struct Cols<C: Copy + Default + Serialize> {
     data: C,
     last_data: *const C,
 }
@@ -46,14 +46,14 @@ pub struct NoCols {
     data: (),
 }
 
-pub struct RowSet<C: Clone + Default + Serialize> {
+pub struct RowSet<C: Copy + Default + Serialize> {
     data: Vec<C>,
     last_data: *const C,
     last_size: usize,
     rows_fetched: SQLLEN,
 }
 
-impl<C: Default + Serialize> ColBinding for Cols<C> {
+impl<C: Copy + Default + Serialize> ColBinding for Cols<C> {
     fn new() -> Self {
         Cols {
             data: Default::default(),
@@ -101,7 +101,7 @@ impl ColBinding for NoCols {
     }
 }
 
-impl<C: Clone + Default + Serialize> ColBinding for RowSet<C> {
+impl<C: Copy + Default + Serialize> ColBinding for RowSet<C> {
     fn new() -> Self {
         RowSet {
             data: Vec::new(),
@@ -142,7 +142,7 @@ impl<C: Clone + Default + Serialize> ColBinding for RowSet<C> {
     }
 }
 
-impl<C: Clone + Default + Serialize> RowSet<C> {
+impl<C: Copy + Default + Serialize> RowSet<C> {
     pub fn fetch_size(&self) -> usize {
         self.data.capacity()
     }
@@ -177,11 +177,14 @@ impl<C: Clone + Default + Serialize> RowSet<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::connection::{Connection, Environment};
-    use super::super::param_binding::{NoParams, Params};
-    use super::super::statement::Statement;
-    use super::super::tests::CONN_STR;
     use super::*;
+
+    use crate::{
+        connection::{Connection, Environment},
+        param_binding::{NoParams, Params},
+        statement::Statement,
+        tests::CONN_STR,
+    };
 
     #[test]
     fn bind_row_set() {

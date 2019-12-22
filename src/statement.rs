@@ -90,7 +90,7 @@ impl<P: ParamBinding, C: ColBinding> Statement<P, C> {
     }
 }
 
-impl<P: ParamBinding, C: Default + Clone + Serialize> Statement<P, RowSet<C>> {
+impl<P: ParamBinding, C: Default + Copy + Serialize> Statement<P, RowSet<C>> {
     pub fn with_fetch_size(conn: &Connection, stmt_str: &str, fetch_size: usize) -> Result<Self> {
         let mut stmt = Self::new(conn, stmt_str)?;
 
@@ -116,11 +116,11 @@ impl<P: ParamBinding, C: ColBinding> Drop for Statement<P, C> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::col_binding::Cols;
-    use super::super::connection::Environment;
-    use super::super::param_binding::Params;
-    use super::super::tests::CONN_STR;
     use super::*;
+
+    use crate::{
+        col_binding::Cols, connection::Environment, param_binding::Params, tests::CONN_STR,
+    };
 
     #[test]
     fn exec_stmt() {

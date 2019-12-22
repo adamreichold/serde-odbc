@@ -90,12 +90,15 @@ impl<T> Into<Option<T>> for Nullable<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::col_binding::Cols;
-    use super::super::connection::{Connection, Environment};
-    use super::super::param_binding::Params;
-    use super::super::statement::Statement;
-    use super::super::tests::CONN_STR;
     use super::*;
+
+    use crate::{
+        col_binding::Cols,
+        connection::{Connection, Environment},
+        param_binding::Params,
+        statement::Statement,
+        tests::CONN_STR,
+    };
 
     #[test]
     fn bind_nullable_param() {

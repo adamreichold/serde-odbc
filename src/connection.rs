@@ -122,8 +122,9 @@ impl<'conn> Drop for Transaction<'conn> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::tests::CONN_STR;
     use super::*;
+
+    use crate::tests::CONN_STR;
 
     #[test]
     fn make_env() {

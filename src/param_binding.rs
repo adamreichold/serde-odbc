@@ -34,7 +34,7 @@ pub trait ParamBinding {
     unsafe fn bind(&mut self, stmt: SQLHSTMT) -> Result<()>;
 }
 
-pub struct Params<P: Default + Serialize> {
+pub struct Params<P: Copy + Default + Serialize> {
     data: P,
     last_data: *const P,
 }
@@ -43,13 +43,13 @@ pub struct NoParams {
     data: (),
 }
 
-pub struct ParamSet<P: Serialize> {
+pub struct ParamSet<P: Copy + Serialize> {
     data: Vec<P>,
     last_data: *const P,
     last_size: usize,
 }
 
-impl<P: Default + Serialize> ParamBinding for Params<P> {
+impl<P: Copy + Default + Serialize> ParamBinding for Params<P> {
     fn new() -> Self {
         Params {
             data: Default::default(),
@@ -89,7 +89,7 @@ impl ParamBinding for NoParams {
     }
 }
 
-impl<P: Serialize> ParamBinding for ParamSet<P> {
+impl<P: Copy + Serialize> ParamBinding for ParamSet<P> {
     fn new() -> Self {
         ParamSet {
             data: Vec::new(),
@@ -121,7 +121,7 @@ impl<P: Serialize> ParamBinding for ParamSet<P> {
     }
 }
 
-impl<P: Serialize> ParamSet<P> {
+impl<P: Copy + Serialize> ParamSet<P> {
     unsafe fn bind_param_set(stmt: SQLHSTMT, size: usize) -> Result<()> {
         SQLSetStmtAttr(
             stmt,
@@ -137,11 +137,14 @@ impl<P: Serialize> ParamSet<P> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::col_binding::{Cols, NoCols};
-    use super::super::connection::{Connection, Environment};
-    use super::super::statement::Statement;
-    use super::super::tests::CONN_STR;
     use super::*;
+
+    use crate::{
+        col_binding::{Cols, NoCols},
+        connection::{Connection, Environment},
+        statement::Statement,
+        tests::CONN_STR,
+    };
 
     #[test]
     fn bind_param_set() {

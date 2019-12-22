@@ -30,7 +30,7 @@ struct Todo {
     done: bool,
 }
 
-#[derive(Clone, Default, Serialize)]
+#[derive(Clone, Copy, Default, Serialize)]
 struct PersistentTodo {
     id: serde_odbc::Nullable<i32>,
     text: serde_odbc::String<U4096>,

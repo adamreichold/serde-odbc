@@ -27,6 +27,8 @@ use crate::binder::with_indicator;
 #[derive(Clone)]
 struct ByteArray<N: ArrayLength<u8>>(GenericArray<u8, N>);
 
+impl<N: Clone + ArrayLength<u8>> Copy for ByteArray<N> where N::ArrayType: Copy {}
+
 impl<N: ArrayLength<u8>> Serialize for ByteArray<N> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_bytes(self.0.as_slice())
@@ -40,6 +42,8 @@ pub struct String<N: ArrayLength<u8>> {
     value: ByteArray<N>,
     null_terminator: u8,
 }
+
+impl<N: Clone + ArrayLength<u8>> Copy for String<N> where N::ArrayType: Copy {}
 
 impl<N: ArrayLength<u8>> Serialize for String<N> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -114,13 +118,17 @@ impl<'a, N: ArrayLength<u8>> Into<Option<&'a mut [u8]>> for &'a mut String<N> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::col_binding::Cols;
-    use super::super::connection::{Connection, Environment};
-    use super::super::param_binding::Params;
-    use super::super::statement::Statement;
-    use super::super::tests::CONN_STR;
     use super::*;
+
     use generic_array::typenum::U8;
+
+    use crate::{
+        col_binding::Cols,
+        connection::{Connection, Environment},
+        param_binding::Params,
+        statement::Statement,
+        tests::CONN_STR,
+    };
 
     #[test]
     fn default_str() {
