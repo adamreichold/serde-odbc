@@ -16,6 +16,7 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::str::from_utf8;
 
 use actix_web::{
     web::{get, post, Data, Json, Query},
@@ -47,7 +48,15 @@ struct Service {
 }
 
 fn to_string<N: generic_array::ArrayLength<u8>>(value: &serde_odbc::String<N>) -> String {
-    String::from_utf8(value.as_slice().unwrap().into()).unwrap()
+    from_utf8(value.as_slice()).unwrap().to_owned()
+}
+
+fn from_string<N: generic_array::ArrayLength<u8>>(
+    value: &mut serde_odbc::String<N>,
+    new_value: &str,
+) {
+    value.clear();
+    value.extend_from_slice(new_value.as_bytes());
 }
 
 impl Service {
@@ -153,7 +162,7 @@ impl Service {
         let trans = self.conn.begin();
         let stmt = &mut self.insert;
 
-        stmt.params().text.assign(todo.text.as_bytes());
+        from_string(&mut stmt.params().text, &todo.text);
         stmt.params().done = todo.done;
 
         stmt.exec()?;
@@ -175,7 +184,7 @@ impl Service {
 
         stmt.params().1 = id;
         stmt.params().0.id = Some(id).into();
-        stmt.params().0.text.assign(todo.text.as_bytes());
+        from_string(&mut stmt.params().0.text, &todo.text);
         stmt.params().0.done = todo.done;
 
         stmt.exec()?;

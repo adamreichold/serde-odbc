@@ -55,7 +55,7 @@ impl<T> Nullable<T> {
 
 impl<T: Default> Default for Nullable<T> {
     fn default() -> Self {
-        Nullable {
+        Self {
             indicator: SQL_NULL_DATA,
             value: Default::default(),
         }

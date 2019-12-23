@@ -16,10 +16,9 @@ along with serde-odbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 use std::cmp::min;
 use std::mem::MaybeUninit;
-use std::ptr::copy_nonoverlapping;
 
 use generic_array::{ArrayLength, GenericArray};
-use odbc_sys::{SQLLEN, SQL_NULL_DATA};
+use odbc_sys::SQLLEN;
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 
 use crate::binder::with_indicator;
@@ -35,12 +34,10 @@ impl<N: ArrayLength<u8>> Serialize for ByteArray<N> {
     }
 }
 
-#[repr(C)]
 #[derive(Clone)]
 pub struct String<N: ArrayLength<u8>> {
     indicator: SQLLEN,
     value: ByteArray<N>,
-    null_terminator: u8,
 }
 
 impl<N: Clone + ArrayLength<u8>> Copy for String<N> where N::ArrayType: Copy {}
@@ -56,63 +53,37 @@ impl<N: ArrayLength<u8>> Serialize for String<N> {
 }
 
 impl<N: ArrayLength<u8>> String<N> {
-    pub fn assign<'a>(&mut self, value: &'a [u8]) {
-        self.indicator = min(N::to_usize(), value.len()) as SQLLEN;
-
-        unsafe {
-            copy_nonoverlapping(
-                value.as_ptr(),
-                self.value.0.as_mut_slice().as_mut_ptr(),
-                self.indicator as usize,
-            );
-        }
+    pub fn clear(&mut self) {
+        self.indicator = 0;
     }
 
-    pub fn as_slice(&self) -> Option<&[u8]> {
-        match self.indicator {
-            SQL_NULL_DATA => None,
-            indicator => Some(&self.value.0.as_slice()[..indicator as usize]),
-        }
+    pub fn extend_from_slice(&mut self, value: &[u8]) {
+        let len = min(N::to_usize() - self.indicator as usize, value.len());
+
+        self.value.0.as_mut_slice()[self.indicator as usize..][..len]
+            .copy_from_slice(&value[..len]);
+
+        self.indicator += len as SQLLEN;
     }
 
-    pub fn as_mut_slice(&mut self) -> Option<&mut [u8]> {
-        match self.indicator {
-            SQL_NULL_DATA => None,
-            indicator => Some(&mut self.value.0.as_mut_slice()[..indicator as usize]),
-        }
+    pub fn as_slice(&self) -> &[u8] {
+        &self.value.0.as_slice()[..self.indicator as usize]
+    }
+
+    pub fn as_mut_slice(&mut self) -> &mut [u8] {
+        &mut self.value.0.as_mut_slice()[..self.indicator as usize]
     }
 }
 
 impl<N: ArrayLength<u8>> Default for String<N> {
     fn default() -> Self {
-        String {
-            indicator: SQL_NULL_DATA,
+        Self {
+            indicator: 0,
             value: unsafe {
                 #[allow(clippy::uninit_assumed_init)]
                 MaybeUninit::uninit().assume_init()
             },
-            null_terminator: 0,
         }
-    }
-}
-
-impl<'a, N: ArrayLength<u8>> From<&'a [u8]> for String<N> {
-    fn from(value: &'a [u8]) -> Self {
-        let mut result: Self = Default::default();
-        result.assign(value);
-        result
-    }
-}
-
-impl<'a, N: ArrayLength<u8>> Into<Option<&'a [u8]>> for &'a String<N> {
-    fn into(self) -> Option<&'a [u8]> {
-        self.as_slice()
-    }
-}
-
-impl<'a, N: ArrayLength<u8>> Into<Option<&'a mut [u8]>> for &'a mut String<N> {
-    fn into(self) -> Option<&'a mut [u8]> {
-        self.as_mut_slice()
     }
 }
 
@@ -133,13 +104,14 @@ mod tests {
     #[test]
     fn default_str() {
         let value: String<U8> = Default::default();
-        assert_eq!(None, value.as_slice());
+        assert_eq!(&b""[..], value.as_slice());
     }
 
     #[test]
     fn make_str() {
-        let value: String<U8> = (&b"foobar"[..]).into();
-        assert_eq!(Some(&b"foobar"[..]), value.as_slice());
+        let mut value: String<U8> = Default::default();
+        value.extend_from_slice(&b"foobar"[..]);
+        assert_eq!(&b"foobar"[..], value.as_slice());
     }
 
     #[test]
@@ -149,10 +121,10 @@ mod tests {
 
         let mut stmt: Statement<Params<String<U8>>, Cols<String<U8>>> =
             Statement::new(&conn, "SELECT ?").unwrap();
-        stmt.params().assign(b"foobarfoobar");
+        stmt.params().extend_from_slice(b"foobarfoobar");
         stmt.exec().unwrap();
         assert!(stmt.fetch().unwrap());
-        assert_eq!(Some(&b"foobarfo"[..]), stmt.cols().as_slice());
+        assert_eq!(&b"foobarfo"[..], stmt.cols().as_slice());
         assert!(!stmt.fetch().unwrap());
     }
 }
