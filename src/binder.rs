@@ -69,14 +69,20 @@ pub trait BinderImpl {
 
 pub struct Binder<I: BinderImpl> {
     impl_: I,
+    lower_bound: SQLPOINTER,
+    upper_bound: SQLPOINTER,
     value_ptr: SQLPOINTER,
 }
 
 impl<I: BinderImpl> Binder<I> {
     pub fn bind<T: Serialize>(impl_: I, value: &T) -> Result<()> {
+        let value_ptr = (value as *const T) as *mut T;
+
         let mut binder = Binder {
             impl_,
-            value_ptr: ((value as *const T) as *mut T) as SQLPOINTER,
+            lower_bound: value_ptr as SQLPOINTER,
+            upper_bound: unsafe { value_ptr.add(1) } as SQLPOINTER,
+            value_ptr: value_ptr as SQLPOINTER,
         };
 
         value.serialize(&mut binder)
@@ -86,6 +92,9 @@ impl<I: BinderImpl> Binder<I> {
 macro_rules! fn_serialize {
     ($method:ident, $type:ident) => {
         fn $method(self, _value: $type) -> Result<()> {
+            assert!(self.lower_bound <= self.value_ptr);
+            assert!(unsafe  { (self.value_ptr as *mut $type).add(1) as SQLPOINTER } <= self.upper_bound);
+
             self.impl_.bind::<$type>(self.value_ptr, take_indicator())
         }
     }
@@ -119,11 +128,15 @@ impl<'a, I: BinderImpl> Serializer for &'a mut Binder<I> {
     fn_serialize!(serialize_bool, bool);
 
     fn serialize_bytes(self, value: &[u8]) -> Result<()> {
-        self.impl_.bind_str(
-            value.len(),
-            (value.as_ptr() as *mut u8) as SQLPOINTER,
-            take_indicator(),
-        )
+        let value_ptr = (value.as_ptr() as *mut u8) as SQLPOINTER;
+
+        assert!(self.lower_bound <= value_ptr);
+        assert!(
+            unsafe { (value_ptr as *mut u8).add(value.len()) } as SQLPOINTER <= self.upper_bound
+        );
+
+        self.impl_
+            .bind_str(value.len(), value_ptr, take_indicator())
     }
 
     fn serialize_char(self, _value: char) -> Result<()> {
@@ -228,6 +241,7 @@ impl<'a, I: BinderImpl> SerializeTuple for &'a mut Binder<I> {
 
     fn serialize_element<T: ?Sized + Serialize>(&mut self, value: &T) -> Result<()> {
         self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
+
         value.serialize(&mut **self)
     }
 
@@ -246,6 +260,7 @@ impl<'a, I: BinderImpl> SerializeStruct for &'a mut Binder<I> {
         value: &T,
     ) -> Result<()> {
         self.value_ptr = ((value as *const T) as *mut T) as SQLPOINTER;
+
         value.serialize(&mut **self)
     }
 
