@@ -113,7 +113,7 @@ impl Service {
             todos.reserve(stmt.cols().len());
             todos.extend(stmt.cols().iter().map(|todo| {
                 (
-                    *todo.id.get().unwrap(),
+                    *todo.id.as_ref().unwrap(),
                     Todo {
                         text: to_string(&todo.text),
                         done: todo.done,
@@ -174,7 +174,7 @@ impl Service {
         let stmt = &mut self.update;
 
         stmt.params().1 = id;
-        stmt.params().0.id.assign(id);
+        stmt.params().0.id = Some(id).into();
         stmt.params().0.text.assign(todo.text.as_bytes());
         stmt.params().0.done = todo.done;
 
