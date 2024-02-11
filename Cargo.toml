@@ -1,7 +1,7 @@
 [package]
 edition = "2018"
 name = "serde-odbc"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Adam Reichold <adam.reichold@t-online.de>"]
 license = "LGPL-3.0"
 repository = "https://github.com/adamreichold/serde-odbc"
@@ -11,6 +11,7 @@ keywords = ["odbc"]
 categories = ["database"]
 
 [badges]
+maintenance = { status = "deprecated" }
 travis-ci = { repository = "adamreichold/serde-odbc" }
 
 [dependencies]
