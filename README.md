@@ -1,3 +1,5 @@
+This repository was moved to <https://codeberg.org/adamreichold/serde-odbc>.
+
 [![Build Status](https://travis-ci.org/adamreichold/serde-odbc.svg?branch=master)](https://travis-ci.org/adamreichold/serde-odbc)
 
 Bind serializable Rust data to ODBC statements
